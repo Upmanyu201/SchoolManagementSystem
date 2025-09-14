@@ -1,0 +1,595 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+{% load permission_tags %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block title %}{% trans "Students List" %} - {{ school_name|default:"School Management" }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Header Card -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-blue-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-users text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-800 bg-clip-text text-transparent">
+                        {% trans "Students Management" %}
+                    </h1>
+                    <p class="text-gray-600 mt-1">{% trans "Manage and view all student records" %}</p>
+                </div>
+            </div>
+            <a href="{% url 'dashboard' %}" 
+               class="btn btn-secondary px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105">
+                <i class="fas fa-home mr-2"></i>{% trans "Dashboard" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-200">
+        <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-xl mb-6">
+            <h2 class="text-white text-xl font-bold flex items-center">
+                <i class="fas fa-search mr-3"></i>{% trans "Search & Filter Students" %}
+            </h2>
+        </div>
+        
+        <form method="GET" id="searchForm" class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Search Input -->
+            <div class="form-group">
+                <label class="block text-gray-700 font-semibold mb-2 flex items-center">
+                    <i class="fas fa-search mr-2 text-blue-500"></i>{% trans "Search" %}
+                </label>
+                <input type="text" name="search" id="searchInput" placeholder="{% trans 'Search by name, mobile or email' %}"
+                    class="form-input w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:ring-0 transition-all duration-300" 
+                    value="{{ search_query|default:'' }}">
+            </div>
+
+            <!-- Class Filter -->
+            <div class="form-group">
+                <label class="block text-gray-700 font-semibold mb-2 flex items-center">
+                    <i class="fas fa-school mr-2 text-green-500"></i>{% trans "Class" %}
+                </label>
+                <select name="class_filter" id="classFilter" class="form-select w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:ring-0 transition-all duration-300" onchange="document.getElementById('searchForm').submit();">
+                    <option value="">{% trans "All Classes" %}</option>
+                    {% for class_section in classes %}
+                    <option value="{{ class_section.id }}" {% if class_filter == class_section.id|stringformat:"s" %}selected{% endif %}>
+                        {{ class_section.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Search Button -->
+            <div class="form-group">
+                <label class="block text-gray-700 font-semibold mb-2">&nbsp;</label>
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-search mr-2"></i>{% trans "Search" %}
+                </button>
+            </div>
+
+            <!-- Clear Button -->
+            <div class="form-group">
+                <label class="block text-gray-700 font-semibold mb-2">&nbsp;</label>
+                <button type="button" onclick="clearFilters()" class="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-times mr-2"></i>{% trans "Clear" %}
+                </button>
+            </div>
+        </form>
+
+        <!-- Action Buttons -->
+        {% csrf_token %}
+        <div class="flex flex-wrap gap-4 justify-center">
+            {% if user|can_edit_module:'students' %}
+            <a href="{% url 'students:add_student' %}" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                <i class="fas fa-plus mr-2"></i>{% trans "Add New Student" %}
+            </a>
+            {% elif user|can_access_module:'students' %}
+            <div class="bg-gray-100 text-gray-500 font-bold py-3 px-6 rounded-xl">
+                <i class="fas fa-eye mr-2"></i>{% trans "View-only access" %}
+            </div>
+            {% endif %}
+            
+            <!-- Export Buttons -->
+            {% if user|can_access_module:'students' %}
+            <div class="flex gap-2">
+                <button onclick="exportData('csv')" class="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg" title="Export to CSV">
+                    <i class="fas fa-file-csv mr-2"></i>CSV
+                </button>
+                <button onclick="exportData('excel')" class="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg" title="Export to Excel">
+                    <i class="fas fa-file-excel mr-2"></i>Excel
+                </button>
+                <button onclick="exportData('pdf')" class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg" title="Export to PDF">
+                    <i class="fas fa-file-pdf mr-2"></i>PDF
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+
+    <!-- Page Size Control -->
+    <div class="bg-white rounded-xl shadow-lg p-4 mb-6 border border-gray-200">
+        <form method="get" action="{% url 'students:student_list' %}" class="flex items-center justify-between">
+            <input type="hidden" name="search" value="{{ search_query }}">
+            <input type="hidden" name="class_filter" value="{{ class_filter }}">
+            <div class="flex items-center gap-4">
+                <span class="text-gray-700 font-semibold flex items-center">
+                    <i class="fas fa-list mr-2 text-blue-500"></i>{% trans "Show" %}
+                </span>
+                <select name="page_size" onchange="this.form.submit()" class="border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-blue-400 transition-colors">
+                    <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                </select>
+                <span class="text-gray-700 font-semibold">{% trans "per page" %}</span>
+            </div>
+            <div class="text-sm text-gray-600">
+                {% if page_obj and page_obj.paginator.count > 0 %}
+                    {% trans "Showing" %} {{ page_obj.start_index }}-{{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }} {% trans "students" %}
+                {% else %}
+                    {% trans "No students to display" %}
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div id="form-messages" class="fixed top-20 right-4 z-50 space-y-2 max-w-md">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'success' %}bg-green-500{% elif message.tags == 'error' %}bg-red-500{% else %}bg-blue-500{% endif %} text-white p-4 rounded-xl shadow-lg animate-slide-in message-item" data-message-id="{{ forloop.counter }}">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-3"></i>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+                <button onclick="removeMessage(this)" class="ml-3 text-white hover:text-gray-200 font-bold">
+                    ×
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Students Table -->
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+        <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
+            <h2 class="text-white text-xl font-bold flex items-center">
+                <i class="fas fa-table mr-3"></i>{% trans "Students List" %}
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-4">
+                            <i class="fas fa-camera mr-2 text-blue-500"></i>{% trans "Photo" %}
+                        </th>
+                        <th class="px-6 py-4">
+                            <i class="fas fa-user mr-2 text-green-500"></i>{% trans "Name" %}
+                        </th>
+                        <th class="px-6 py-4">
+                            <i class="fas fa-male mr-2 text-purple-500"></i>{% trans "Father's Name" %}
+                        </th>
+                        <th class="px-6 py-4">
+                            <i class="fas fa-school mr-2 text-orange-500"></i>{% trans "Class" %}
+                        </th>
+                        <th class="px-6 py-4">
+                            <i class="fas fa-id-badge mr-2 text-teal-500"></i>{% trans "Admission No." %}
+                        </th>
+                        <th class="px-6 py-4">
+                            <i class="fas fa-cogs mr-2 text-red-500"></i>{% trans "Actions" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Force show students for debugging -->
+                    {% if page_obj and page_obj|length > 0 %}
+                        {% for student in page_obj %}
+                        <tr class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300">
+                            <td class="px-6 py-4">
+                                <img src="{{ student.image_url }}" alt="{{ student.first_name }}"
+                                    class="w-12 h-12 rounded-full object-cover border-4 border-blue-200 shadow-lg hover:scale-110 transition-transform duration-300"
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg" style="display:none;">
+                                    {{ student.first_name|first|upper }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-gray-900 text-lg">{{ student.first_name }} {{ student.last_name }}</div>
+                                {% if student.mobile_number %}
+                                <div class="text-sm text-gray-500 flex items-center">
+                                    <i class="fas fa-phone mr-1"></i>{{ student.mobile_number }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-gray-700 font-medium">
+                                {{ student.father_name|default:"-" }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="badge badge-primary">
+                                    {% if student.class_section %}
+                                        {{ student.class_section }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="font-mono text-sm bg-gray-100 px-3 py-1 rounded-lg border">
+                                    {{ student.admission_number }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex gap-2">
+                                    {% if user|can_access_module:'students' %}
+                                    <a href="{% url 'students:student_dashboard' student.admission_number %}"
+                                        class="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md" title="Student Dashboard">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if user|can_edit_module:'students' %}
+                                    <a href="{% url 'students:edit_student' student.id %}"
+                                        class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md" title="Edit Student">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button onclick="showDeleteModal('{{ student.first_name }} {{ student.last_name }}', '{{ student.admission_number }}', '{% url 'students:delete_student' student.id %}')"
+                                        class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md" title="Delete Student">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% elif page_obj %}
+                        <!-- Page obj exists but empty -->
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center bg-yellow-50">
+                                <div class="flex flex-col items-center">
+                                    <i class="fas fa-exclamation-triangle text-6xl text-yellow-500 mb-4"></i>
+                                    <h3 class="text-xl font-bold text-yellow-700 mb-2">Page Object Empty</h3>
+                                    <p class="text-yellow-600">
+                                        Page object exists but contains no students.<br>
+                                        Length: {{ page_obj|length }}, Count: {{ page_obj.paginator.count }}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <!-- No page obj at all -->
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center bg-red-50">
+                                <div class="flex flex-col items-center">
+                                    <i class="fas fa-users text-6xl text-red-300 mb-4"></i>
+                                    <h3 class="text-xl font-bold text-red-500 mb-2">No Page Object</h3>
+                                    <p class="text-red-400">
+                                        {% if search_query or class_filter %}
+                                            {% trans "No students match your search criteria" %}
+                                        {% else %}
+                                            Page object is missing from context!
+                                        {% endif %}
+                                    </p>
+                                    {% if not search_query and not class_filter and user|can_edit_module:'students' %}
+                                    <a href="{% url 'students:add_student' %}" class="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                                        <i class="fas fa-plus mr-2"></i>{% trans "Add First Student" %}
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj and page_obj.has_other_pages %}
+    <div class="bg-white rounded-xl shadow-lg p-6 mt-8 border border-gray-200">
+        <nav class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&class_filter={{ class_filter }}&page_size={{ page_size }}"
+                   class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                    <i class="fas fa-chevron-left mr-2"></i>{% trans "Previous" %}
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center gap-2">
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold">
+                        {{ num }}
+                    </span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}&search={{ search_query }}&class_filter={{ class_filter }}&page_size={{ page_size }}"
+                       class="bg-gray-100 hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-600 hover:text-white px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <div class="flex items-center gap-2">
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&class_filter={{ class_filter }}&page_size={{ page_size }}"
+                   class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                    {% trans "Next" %}<i class="fas fa-chevron-right ml-2"></i>
+                </a>
+                {% endif %}
+            </div>
+        </nav>
+    </div>
+    {% endif %}
+    
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 border border-gray-200">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">{% trans "Confirm Deletion" %}</h3>
+            <p class="text-gray-600">
+                {% trans "Are you sure you want to delete" %} <span id="studentName" class="font-semibold text-red-600"></span>?
+            </p>
+            <p class="text-sm text-gray-500 mt-2">
+                {% trans "Admission No:" %} <span id="studentAdmissionNo" class="font-mono"></span>
+            </p>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="hideDeleteModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-xl transition-all duration-300">
+                <i class="fas fa-times mr-2"></i>{% trans "Cancel" %}
+            </button>
+            <form id="deleteForm" method="POST" class="flex-1">
+                {% csrf_token %}
+                <button type="submit" class="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-trash-alt mr-2"></i>{% trans "Delete" %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Clear filters function
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('classFilter').value = '';
+    window.location.href = '{% url "students:student_list" %}';
+}
+
+// Auto-submit on Enter key for search
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('searchForm').submit();
+            }
+        });
+    }
+});
+
+function showDeleteModal(name, admissionNo, deleteUrl) {
+    document.getElementById('studentName').textContent = name;
+    document.getElementById('studentAdmissionNo').textContent = admissionNo;
+    document.getElementById('deleteForm').action = deleteUrl;
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function hideDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteModal').addEventListener('click', function (e) {
+    if (e.target === this) {
+        hideDeleteModal();
+    }
+});
+
+// Export functionality
+function exportData(format) {
+    const searchQuery = '{{ search_query|default:"" }}';
+    const classFilter = '{{ class_filter|default:"" }}';
+    
+    // Show loading state
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+    button.disabled = true;
+    
+    // Build export URL with current filters
+    const params = new URLSearchParams();
+    params.append('export', format);
+    if (searchQuery) params.append('search', searchQuery);
+    if (classFilter) params.append('class_filter', classFilter);
+    
+    const exportUrl = '{% url "students:student_list" %}?' + params.toString();
+    
+    // Direct download
+    window.location.href = exportUrl;
+    
+    // Restore button after short delay
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        showNotification(`${format.toUpperCase()} export started!`, 'success');
+    }, 1000);
+}
+
+
+
+function showNotification(message, type) {
+    // Remove existing export notifications to prevent overlap
+    const existingNotifications = document.querySelectorAll('.export-notification');
+    existingNotifications.forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `export-notification fixed top-32 right-4 z-50 p-4 rounded-xl shadow-lg animate-slide-in max-w-md ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } text-white`;
+    notification.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas ${
+                    type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'
+                } mr-3"></i>
+                <span class="font-medium">${message}</span>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-white hover:text-gray-200 font-bold">
+                ×
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) notification.remove();
+            }, 300);
+        }
+    }, 3000);
+}
+
+// Helper function to get cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Message handling functions
+function removeMessage(button) {
+    const messageItem = button.closest('.message-item');
+    messageItem.style.opacity = '0';
+    messageItem.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+        messageItem.remove();
+        // Remove container if no messages left
+        const container = document.getElementById('form-messages');
+        if (container && container.children.length === 0) {
+            container.remove();
+        }
+    }, 300);
+}
+
+// Auto-hide messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messageItems = document.querySelectorAll('.message-item');
+    messageItems.forEach((item, index) => {
+        setTimeout(() => {
+            if (item.parentNode) { // Check if still exists
+                removeMessage(item.querySelector('button'));
+            }
+        }, 4000 + (index * 500)); // Stagger removal
+    });
+    
+    // Animate table rows on load
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            row.style.transition = 'all 0.5s ease';
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+</script>
+
+
+
+{% block extra_css %}
+<style>
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Enhanced form styling */
+.form-input, .form-select {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    box-shadow: inset 2px 2px 5px #e2e8f0, inset -2px -2px 5px #ffffff;
+}
+
+.form-input:focus, .form-select:focus {
+    background: #ffffff;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Table enhancements */
+.table tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Badge styling */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.badge-primary {
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    color: white;
+}
+</style>
+{% endblock %}
+{% endblock %}

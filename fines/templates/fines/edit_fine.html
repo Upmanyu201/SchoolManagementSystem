@@ -1,0 +1,995 @@
+{% extends 'fines/base_fine.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block fine_content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 animate-fade-in">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Modern Header Card -->
+        <div class="glass rounded-4xl shadow-brutal-lg border border-white/20 p-8 mb-8 backdrop-blur-xl">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div class="flex items-center space-x-6">
+                    <div class="relative">
+                        <div class="w-16 h-16 bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 rounded-2xl flex items-center justify-center shadow-neon transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                            <i class="fas fa-edit text-white text-2xl animate-pulse"></i>
+                        </div>
+                        <div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold animate-bounce">
+                            {{ fine.id }}
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl lg:text-5xl font-bold gradient-text-rainbow mb-2">
+                            ✏️ {% trans "Edit Fine" %}
+                        </h1>
+                        <p class="text-slate-600 text-lg font-medium">{% trans "Modify fine details and settings with precision" %}</p>
+                        <div class="flex items-center mt-2 space-x-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <i class="fas fa-hashtag mr-1"></i>ID: {{ fine.id }}
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <i class="fas fa-calendar mr-1"></i>{{ fine.applied_date|date:"M d, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="{% url 'fines:fine_history' %}" 
+                       class="btn-3d inline-flex items-center px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-semibold rounded-2xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg">
+                        <i class="fas fa-arrow-left mr-2"></i>{% trans "Back to History" %}
+                    </a>
+                    <button type="button" onclick="previewChanges()" class="btn-3d inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg">
+                        <i class="fas fa-eye mr-2"></i>{% trans "Preview" %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modern Form Card -->
+        <div class="glass rounded-4xl shadow-brutal-lg border border-white/20 overflow-hidden backdrop-blur-xl">
+            <div class="bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 p-8 relative overflow-hidden">
+                <div class="absolute inset-0 bg-black/10"></div>
+                <div class="relative z-10">
+                    <h2 class="text-white text-2xl font-bold flex items-center mb-2">
+                        <i class="fas fa-clipboard-list mr-4 text-3xl animate-bounce"></i>{% trans "Fine Information Form" %}
+                    </h2>
+                    <p class="text-white/90 text-sm">{% trans "Update fine details with enhanced controls and validation" %}</p>
+                </div>
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="p-8 lg:p-12">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12">
+                    <!-- Left Column -->
+                    <div class="space-y-8">
+                        <div class="form-group">
+                            <label class="block text-slate-700 font-bold mb-4 flex items-center text-lg">
+                                <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                                    <i class="fas fa-tags text-white text-sm"></i>
+                                </div>
+                                {% trans "Fine Type" %}
+                                <span class="text-red-500 ml-1 text-xl">*</span>
+                            </label>
+                            <div class="relative">
+                                <select name="fine_type" id="id_fine_type" class="w-full px-6 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all duration-300 text-lg font-medium shadow-lg hover:shadow-xl">
+                                    {% for fine_type in form.fine_type.field.queryset %}
+                                    <option value="{{ fine_type.id }}" {% if fine_type.id == form.fine_type.value %}selected{% endif %}>
+                                        {{ fine_type.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-slate-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-slate-700 font-bold mb-4 flex items-center text-lg">
+                                <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                                    <i class="fas fa-rupee-sign text-white text-sm"></i>
+                                </div>
+                                {% trans "Amount" %}
+                                <span class="text-red-500 ml-1 text-xl">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                    <span class="text-slate-500 text-xl font-bold">₹</span>
+                                </div>
+                                <input type="number" name="amount" id="id_amount" step="0.01" 
+                                       value="{{ form.amount.value|default:'' }}"
+                                       class="w-full pl-12 pr-6 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-green-400 focus:ring-4 focus:ring-green-100 transition-all duration-300 text-lg font-semibold shadow-lg hover:shadow-xl" 
+                                       placeholder="0.00">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                                    <div class="text-xs text-slate-400 font-medium">INR</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="block text-slate-700 font-bold mb-4 flex items-center text-lg">
+                                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                                    <i class="fas fa-calendar-alt text-white text-sm"></i>
+                                </div>
+                                {% trans "Due Date" %}
+                                <span class="text-red-500 ml-1 text-xl">*</span>
+                            </label>
+                            <input type="date" name="due_date" id="id_due_date" value="{{ form.due_date.value|date:'Y-m-d' }}"
+                                   class="w-full px-6 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all duration-300 text-lg font-medium shadow-lg hover:shadow-xl">
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-8">
+                        <div class="form-group">
+                            <label class="block text-slate-700 font-bold mb-4 flex items-center text-lg">
+                                <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-violet-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                                    <i class="fas fa-info-circle text-white text-sm"></i>
+                                </div>
+                                {% trans "Fine Status" %}
+                            </label>
+                            <div class="p-6 glass rounded-3xl border border-white/20 backdrop-blur-xl">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-xl font-bold">
+                                        {% if fine.is_paid %}
+                                            <span class="text-emerald-600 flex items-center animate-pulse">
+                                                <i class="fas fa-check-circle mr-3 text-2xl"></i>{% trans "Fully Paid" %}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-amber-600 flex items-center animate-bounce">
+                                                <i class="fas fa-clock mr-3 text-2xl"></i>{% trans "Pending Payment" %}
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between text-slate-700">
+                                        <span class="font-medium">{% trans "Students Paid" %}:</span>
+                                        <span class="font-bold text-lg">{{ fine.paid_count|default:0 }} / {{ fine.fine_students.count }}</span>
+                                    </div>
+                                    <div class="relative">
+                                        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                                            <div class="bg-gradient-to-r from-emerald-400 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out shadow-lg" 
+                                                 style="width: {% if fine.fine_students.count > 0 %}{% widthratio fine.paid_count|default:0 fine.fine_students.count 100 %}{% else %}0{% endif %}%"></div>
+                                        </div>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-xs font-bold text-white drop-shadow-lg">
+                                                {% if fine.fine_students.count > 0 %}{% widthratio fine.paid_count|default:0 fine.fine_students.count 100 %}{% else %}0{% endif %}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Target Scope Section -->
+                <div class="mt-12">
+                    <div class="glass rounded-4xl p-8 border border-white/20 backdrop-blur-xl">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-8 flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                                <i class="fas fa-bullseye text-white"></i>
+                            </div>
+                            {% trans "Target Scope" %}
+                            <span class="text-red-500 ml-2 text-2xl">*</span>
+                        </h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="target_scope" value="Individual" class="sr-only"
+                                    {% if form.target_scope.value == 'Individual' %}checked{% endif %}>
+                                <div class="p-6 border-3 rounded-3xl transition-all duration-500 hover:shadow-brutal group-hover:scale-105 {% if form.target_scope.value == 'Individual' %}border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 shadow-neon{% else %}border-slate-300 hover:border-orange-400 bg-white{% endif %}">
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-white text-sm"></i>
+                                        </div>
+                                        <span class="font-bold text-slate-800 text-lg">{% trans "Individual" %}</span>
+                                    </div>
+                                    <p class="text-slate-600 font-medium">{% trans "Apply to specific students" %}</p>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="target_scope" value="Class" class="sr-only"
+                                    {% if form.target_scope.value == 'Class' %}checked{% endif %}>
+                                <div class="p-6 border-3 rounded-3xl transition-all duration-500 hover:shadow-brutal group-hover:scale-105 {% if form.target_scope.value == 'Class' %}border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-neon{% else %}border-slate-300 hover:border-blue-400 bg-white{% endif %}">
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center mr-3">
+                                            <i class="fas fa-users text-white text-sm"></i>
+                                        </div>
+                                        <span class="font-bold text-slate-800 text-lg">{% trans "Class" %}</span>
+                                    </div>
+                                    <p class="text-slate-600 font-medium">{% trans "Apply to entire class" %}</p>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="target_scope" value="All" class="sr-only"
+                                    {% if form.target_scope.value == 'All' %}checked{% endif %}>
+                                <div class="p-6 border-3 rounded-3xl transition-all duration-500 hover:shadow-brutal group-hover:scale-105 {% if form.target_scope.value == 'All' %}border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-neon{% else %}border-slate-300 hover:border-purple-400 bg-white{% endif %}">
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mr-3">
+                                            <i class="fas fa-globe text-white text-sm"></i>
+                                        </div>
+                                        <span class="font-bold text-slate-800 text-lg">🌍 {% trans "All Students" %}</span>
+                                    </div>
+                                    <p class="text-slate-600 font-medium">{% trans "Apply to all students" %}</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- Conditional Fields -->
+        <div id="student-field" class="mt-6 {% if form.target_scope.value != 'Individual' %}hidden{% endif %}">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-user-friends mr-3 text-blue-500"></i>{% trans "Select Students" %}*
+                </h4>
+                
+                <!-- Search Bar -->
+                <div class="mb-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="student-search" 
+                               placeholder="{% trans 'Search students by name, admission number, father name, or class...' %}"
+                               class="form-input pl-10">
+                    </div>
+                </div>
+                
+                <!-- Student Selection -->
+                <div class="border-2 border-dashed border-blue-300 rounded-xl p-4 max-h-60 overflow-y-auto bg-white">
+                    <div id="student-list" class="space-y-2">
+                        <!-- Students will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Selected Students Display -->
+                <div id="selected-students" class="mt-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <i class="fas fa-check-circle mr-2 text-green-500"></i>{% trans "Selected Students" %}:
+                    </label>
+                    <div id="selected-students-list" class="space-y-2">
+                        <!-- Selected students will be shown here -->
+                    </div>
+                </div>
+                
+                <!-- Hidden input for form submission -->
+                <input type="hidden" name="selected_students" id="selected_students_input" value="{{ selected_students }}">
+            </div>
+        </div>
+
+        <div id="class-field" class="mt-6 {% if form.target_scope.value != 'Class' %}hidden{% endif %}">
+            <div class="glass rounded-4xl p-8 border border-white/20 backdrop-blur-xl">
+                <h4 class="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                        <i class="fas fa-school text-white"></i>
+                    </div>
+                    {% trans "Select Class" %}
+                    <span class="text-red-500 ml-2 text-2xl">*</span>
+                </h4>
+                
+                <!-- Enhanced Class Selection -->
+                <div class="relative">
+                    <select name="class_section" id="id_class_section" 
+                            class="w-full px-6 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-green-400 focus:ring-4 focus:ring-green-100 transition-all duration-300 text-lg font-semibold shadow-lg hover:shadow-xl appearance-none">
+                        <option value="" class="text-slate-400">{% trans "Choose a class to apply fine..." %}</option>
+                        {% for class_section in form.class_section.field.queryset %}
+                        <option value="{{ class_section.id }}" 
+                                {% if form.class_section.value == class_section.id %}selected{% endif %}
+                                data-class-name="{{ class_section.display_name }}">
+                            {{ class_section.display_name }} 
+                            {% if class_section.students.count %}
+                                ({{ class_section.students.count }} students)
+                            {% else %}
+                                (No students)
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                        <i class="fas fa-chevron-down text-slate-400 text-xl"></i>
+                    </div>
+                </div>
+                
+                <!-- Selected Class Display -->
+                <div id="selected-class-display" class="mt-6 {% if not form.class_section.value %}hidden{% endif %}">
+                    <div class="glass rounded-3xl p-6 border border-white/20 backdrop-blur-xl bg-gradient-to-r from-green-50 to-emerald-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                                    <i class="fas fa-users text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xl font-bold text-green-800 mb-1">Selected Class</h5>
+                                    <p id="selected-class-name" class="text-green-700 font-semibold text-lg">
+                                        {% if form.class_section.value %}
+                                            {% for class_section in form.class_section.field.queryset %}
+                                                {% if class_section.id == form.class_section.value %}
+                                                    {{ class_section.display_name }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-green-600" id="student-count">
+                                    {% if form.class_section.value %}
+                                        {% for class_section in form.class_section.field.queryset %}
+                                            {% if class_section.id == form.class_section.value %}
+                                                {{ class_section.students.count }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <div class="text-sm text-green-600 font-medium">Students</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar for Class Coverage -->
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between text-sm text-green-700 mb-2">
+                                <span class="font-medium">Fine Coverage</span>
+                                <span class="font-bold">100% of class</span>
+                            </div>
+                            <div class="w-full bg-green-200 rounded-full h-3 overflow-hidden">
+                                <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-3 rounded-full transition-all duration-1000 ease-out shadow-lg animate-pulse" 
+                                     style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Class Selection Help -->
+                <div class="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <div class="flex items-center text-blue-700">
+                        <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                        <span class="text-sm font-medium">
+                            {% trans "This fine will be applied to all students in the selected class" %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Reason Section -->
+        <div class="mt-8">
+            <div class="glass rounded-4xl p-8 border border-white/20 backdrop-blur-xl">
+                <h4 class="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-violet-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                        <i class="fas fa-comment-alt text-white"></i>
+                    </div>
+                    {% trans "Reason for Fine" %}
+                    <span class="text-red-500 ml-2 text-2xl">*</span>
+                </h4>
+                
+                <!-- Quick Reason Templates -->
+                <div class="mb-6">
+                    <label class="block text-slate-700 font-semibold mb-3 flex items-center">
+                        <i class="fas fa-magic mr-2 text-indigo-500"></i>{% trans "Quick Templates" %}
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <button type="button" onclick="setReason('Late fee payment - overdue amount')" 
+                                class="p-3 text-left bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-xl hover:border-red-400 hover:shadow-lg transition-all duration-300 group">
+                            <div class="flex items-center">
+                                <i class="fas fa-clock mr-2 text-red-500 group-hover:animate-spin"></i>
+                                <span class="font-medium text-red-700">Late Payment</span>
+                            </div>
+                        </button>
+                        <button type="button" onclick="setReason('Disciplinary action - violation of school rules')" 
+                                class="p-3 text-left bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-xl hover:border-orange-400 hover:shadow-lg transition-all duration-300 group">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2 text-orange-500 group-hover:animate-bounce"></i>
+                                <span class="font-medium text-orange-700">Discipline</span>
+                            </div>
+                        </button>
+                        <button type="button" onclick="setReason('Library fine - overdue books or damage')" 
+                                class="p-3 text-left bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:shadow-lg transition-all duration-300 group">
+                            <div class="flex items-center">
+                                <i class="fas fa-book mr-2 text-blue-500 group-hover:animate-pulse"></i>
+                                <span class="font-medium text-blue-700">Library</span>
+                            </div>
+                        </button>
+                        <button type="button" onclick="setReason('Property damage - repair or replacement cost')" 
+                                class="p-3 text-left bg-gradient-to-r from-purple-50 to-violet-50 border-2 border-purple-200 rounded-xl hover:border-purple-400 hover:shadow-lg transition-all duration-300 group">
+                            <div class="flex items-center">
+                                <i class="fas fa-tools mr-2 text-purple-500 group-hover:animate-bounce"></i>
+                                <span class="font-medium text-purple-700">Damage</span>
+                            </div>
+                        </button>
+                        <button type="button" onclick="setReason('Uniform violation - dress code infringement')" 
+                                class="p-3 text-left bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl hover:border-green-400 hover:shadow-lg transition-all duration-300 group">
+                            <div class="flex items-center">
+                                <i class="fas fa-tshirt mr-2 text-green-500 group-hover:animate-pulse"></i>
+                                <span class="font-medium text-green-700">Uniform</span>
+                            </div>
+                        </button>
+                        <button type="button" onclick="clearReason()" 
+                                class="p-3 text-left bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:shadow-lg transition-all duration-300 group">
+                            <div class="flex items-center">
+                                <i class="fas fa-edit mr-2 text-slate-500 group-hover:animate-spin"></i>
+                                <span class="font-medium text-slate-700">Custom</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Textarea -->
+                <div class="relative">
+                    <label class="block text-slate-700 font-semibold mb-3 flex items-center">
+                        <i class="fas fa-pen mr-2 text-purple-500"></i>{% trans "Detailed Reason" %}
+                    </label>
+                    <div class="relative">
+                        <textarea name="reason" id="id_reason" rows="5" maxlength="500"
+                                  class="w-full px-6 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-300 text-lg font-medium shadow-lg hover:shadow-xl resize-none"
+                                  placeholder="{% trans 'Provide a detailed explanation for this fine. Be specific about the incident, date, and any relevant circumstances...' %}"
+                                  oninput="updateCharacterCount()">{{ form.reason.value|default:'' }}</textarea>
+                        
+                        <!-- Character Counter -->
+                        <div class="absolute bottom-3 right-3 flex items-center space-x-2">
+                            <div id="char-count" class="text-sm font-medium text-slate-400">0/500</div>
+                            <div class="w-2 h-2 bg-slate-300 rounded-full" id="char-indicator"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reason Guidelines -->
+                    <div class="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                        <div class="flex items-start">
+                            <i class="fas fa-lightbulb mr-3 text-indigo-500 mt-1"></i>
+                            <div>
+                                <h6 class="font-bold text-indigo-800 mb-2">{% trans "Writing Guidelines" %}</h6>
+                                <ul class="text-sm text-indigo-700 space-y-1">
+                                    <li class="flex items-center"><i class="fas fa-check mr-2 text-green-500"></i>{% trans "Be specific about the incident" %}</li>
+                                    <li class="flex items-center"><i class="fas fa-check mr-2 text-green-500"></i>{% trans "Include date and time if relevant" %}</li>
+                                    <li class="flex items-center"><i class="fas fa-check mr-2 text-green-500"></i>{% trans "Mention any witnesses or evidence" %}</li>
+                                    <li class="flex items-center"><i class="fas fa-check mr-2 text-green-500"></i>{% trans "Keep it professional and factual" %}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-16 flex flex-col sm:flex-row justify-center items-center gap-6">
+                    <a href="{% url 'fines:fine_history' %}" 
+                       class="btn-3d inline-flex items-center px-10 py-4 bg-gradient-to-r from-slate-500 to-slate-600 text-white font-bold rounded-3xl hover:from-slate-600 hover:to-slate-700 transition-all duration-500 shadow-brutal text-lg">
+                        <i class="fas fa-times mr-3 text-xl"></i>{% trans "Cancel" %}
+                    </a>
+                    <button type="submit" 
+                            class="btn-3d inline-flex items-center px-12 py-4 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 text-white font-bold rounded-3xl hover:from-orange-600 hover:via-red-600 hover:to-pink-700 transition-all duration-500 shadow-brutal text-lg animate-pulse hover:animate-none">
+                        <i class="fas fa-save mr-3 text-xl"></i>{% trans "Update Fine" %}
+                        <div class="ml-2 w-2 h-2 bg-white rounded-full animate-ping"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Preview Changes Function
+function previewChanges() {
+    const formData = new FormData(document.querySelector('form'));
+    const previewData = {
+        fine_type: document.getElementById('id_fine_type').selectedOptions[0]?.text || 'Not selected',
+        amount: formData.get('amount') || '0.00',
+        due_date: formData.get('due_date') || 'Not set',
+        target_scope: formData.get('target_scope') || 'Not selected'
+    };
+    
+    const previewHtml = `
+        <div class="glass rounded-3xl p-6 border border-white/20 backdrop-blur-xl">
+            <h3 class="text-xl font-bold mb-4 gradient-text">Preview Changes</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between"><span class="font-medium">Fine Type:</span><span>${previewData.fine_type}</span></div>
+                <div class="flex justify-between"><span class="font-medium">Amount:</span><span class="font-bold text-green-600">₹${previewData.amount}</span></div>
+                <div class="flex justify-between"><span class="font-medium">Due Date:</span><span>${previewData.due_date}</span></div>
+                <div class="flex justify-between"><span class="font-medium">Target:</span><span>${previewData.target_scope}</span></div>
+            </div>
+        </div>
+    `;
+    
+    // Create and show modal
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in';
+    modal.innerHTML = `
+        <div class="max-w-md w-full mx-4 animate-zoom-in">
+            ${previewHtml}
+            <button onclick="this.closest('.fixed').remove()" class="mt-4 w-full btn-3d bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 rounded-2xl">
+                Close Preview
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+<script>
+// Enhanced Form Interactions
+document.addEventListener('DOMContentLoaded', function() {
+    // Modern focus effects
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.classList.add('scale-105', 'shadow-brutal');
+            this.parentElement.classList.add('animate-pulse');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.classList.remove('scale-105', 'shadow-brutal');
+            this.parentElement.classList.remove('animate-pulse');
+        });
+    });
+    
+    // Enhanced form submission
+    const form = document.querySelector('form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function() {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i>{% trans "Updating..." %}<div class="ml-2 w-2 h-2 bg-white rounded-full animate-ping"></div>';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('animate-pulse');
+    });
+
+    // Enhanced radio button interactions
+    const radioInputs = document.querySelectorAll('input[type="radio"]');
+    radioInputs.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Reset all options
+            document.querySelectorAll('input[name="target_scope"]').forEach(r => {
+                const container = r.closest('label').querySelector('div');
+                container.classList.remove('border-orange-500', 'bg-gradient-to-br', 'from-orange-50', 'to-red-50', 'shadow-neon',
+                                          'border-blue-500', 'from-blue-50', 'to-indigo-50',
+                                          'border-purple-500', 'from-purple-50', 'to-pink-50');
+                container.classList.add('border-slate-300', 'bg-white');
+            });
+            
+            // Style selected option
+            if (this.checked) {
+                const container = this.closest('label').querySelector('div');
+                container.classList.remove('border-slate-300', 'bg-white');
+                
+                if (this.value === 'Individual') {
+                    container.classList.add('border-orange-500', 'bg-gradient-to-br', 'from-orange-50', 'to-red-50', 'shadow-neon');
+                } else if (this.value === 'Class') {
+                    container.classList.add('border-blue-500', 'bg-gradient-to-br', 'from-blue-50', 'to-indigo-50', 'shadow-neon');
+                } else if (this.value === 'All') {
+                    container.classList.add('border-purple-500', 'bg-gradient-to-br', 'from-purple-50', 'to-pink-50', 'shadow-neon');
+                }
+                
+                container.classList.add('animate-bounce');
+                setTimeout(() => container.classList.remove('animate-bounce'), 1000);
+            }
+        });
+    });
+    // Enhanced fine management functionality
+    const targetScopeRadios = document.querySelectorAll('input[name="target_scope"]');
+    const studentField = document.getElementById('student-field');
+    const classField = document.getElementById('class-field');
+    const studentSearch = document.getElementById('student-search');
+    const studentList = document.getElementById('student-list');
+    const selectedStudentsList = document.getElementById('selected-students-list');
+    const selectedStudentsInput = document.getElementById('selected_students_input');
+
+    // Store selected students with enhanced tracking
+    let selectedStudents = new Set();
+    
+    // Initialize with existing selected students
+    if (selectedStudentsInput && selectedStudentsInput.value) {
+        selectedStudentsInput.value.split(',').forEach(id => {
+            if (id.trim()) selectedStudents.add(id.trim());
+        });
+    }
+
+    // Enhanced field toggling with animations
+    function toggleFields() {
+        const selectedScope = document.querySelector('input[name="target_scope"]:checked');
+        if (!selectedScope) return;
+        
+        const scope = selectedScope.value;
+
+        // Hide all conditional fields with animation
+        [studentField, classField].forEach(field => {
+            if (field) {
+                field.classList.add('animate-fade-out');
+                setTimeout(() => {
+                    field.classList.add('hidden');
+                    field.classList.remove('animate-fade-out');
+                }, 200);
+            }
+        });
+
+        // Show appropriate field with animation
+        setTimeout(() => {
+            if (scope === 'Individual' && studentField) {
+                studentField.classList.remove('hidden');
+                studentField.classList.add('animate-fade-in');
+                loadAllStudents();
+            } else if (scope === 'Class' && classField) {
+                classField.classList.remove('hidden');
+                classField.classList.add('animate-fade-in');
+                updateClassDisplay();
+            }
+        }, 250);
+    }
+    
+    // Enhanced class selection display
+    function updateClassDisplay() {
+        const classSelect = document.getElementById('id_class_section');
+        const selectedClassDisplay = document.getElementById('selected-class-display');
+        const selectedClassName = document.getElementById('selected-class-name');
+        const studentCount = document.getElementById('student-count');
+        
+        if (!classSelect || !selectedClassDisplay) return;
+        
+        classSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                // Show selected class info
+                selectedClassDisplay.classList.remove('hidden');
+                selectedClassDisplay.classList.add('animate-fade-in');
+                
+                // Update class name
+                if (selectedClassName) {
+                    selectedClassName.textContent = selectedOption.text.split(' (')[0];
+                }
+                
+                // Extract and update student count
+                const countMatch = selectedOption.text.match(/\((\d+) students?\)/);
+                if (studentCount && countMatch) {
+                    studentCount.textContent = countMatch[1];
+                    
+                    // Add animation to count
+                    studentCount.classList.add('animate-bounce');
+                    setTimeout(() => studentCount.classList.remove('animate-bounce'), 1000);
+                }
+                
+                // Add success styling to select
+                this.classList.add('border-green-400', 'bg-green-50');
+                this.classList.remove('border-slate-200');
+                
+            } else {
+                // Hide selected class info
+                selectedClassDisplay.classList.add('hidden');
+                selectedClassDisplay.classList.remove('animate-fade-in');
+                
+                // Reset select styling
+                this.classList.remove('border-green-400', 'bg-green-50');
+                this.classList.add('border-slate-200');
+            }
+        });
+        
+        // Initialize display if class is already selected
+        if (classSelect.value) {
+            classSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // Enhanced student loading with better UX
+    function loadAllStudents() {
+        if (!studentList) return;
+        
+        // Show loading state
+        studentList.innerHTML = '<div class="text-center py-8"><div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div><div class="text-slate-600 font-medium">Loading students...</div></div>';
+        
+        fetch(`{% url 'fines:ajax_load_students_for_fees_type' %}?fees_type_id=`)
+            .then(response => response.json())
+            .then(data => {
+                displayStudents(data.students || []);
+                updateSelectedStudentsDisplay();
+            })
+            .catch(error => {
+                console.error('Error loading students:', error);
+                studentList.innerHTML = '<div class="text-center py-8"><div class="text-red-500 text-lg font-medium mb-2">Loading Error</div><div class="text-slate-400 text-sm">Please refresh the page or contact support</div></div>';
+            });
+    }
+
+    // Enhanced student display with modern styling
+    function displayStudents(students) {
+        if (!studentList) return;
+        
+        studentList.innerHTML = '';
+        
+        if (students.length === 0) {
+            studentList.innerHTML = '<div class="text-center py-8"><div class="text-slate-400 text-lg font-medium">No students found</div><div class="text-slate-300 text-sm mt-2">Try adjusting your search criteria</div></div>';
+            return;
+        }
+
+        students.forEach((student, index) => {
+            const studentDiv = document.createElement('div');
+            studentDiv.className = 'flex items-center p-4 glass rounded-2xl border border-white/20 hover:shadow-brutal transition-all duration-300 cursor-pointer group animate-slide-up';
+            studentDiv.style.animationDelay = `${index * 50}ms`;
+            
+            studentDiv.innerHTML = `
+                <input type="checkbox" id="student-${student.id}" value="${student.id}" 
+                       class="w-5 h-5 text-blue-600 bg-white border-2 border-slate-300 rounded-lg focus:ring-blue-500 focus:ring-2 mr-4" 
+                       ${selectedStudents.has(student.id) ? 'checked' : ''}>
+                <label for="student-${student.id}" class="flex-1 cursor-pointer">
+                    <div class="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition-colors">${student.name}</div>
+                    <div class="text-sm text-slate-500 mt-1 space-x-4">
+                        <span class="inline-flex items-center"><i class="fas fa-id-badge mr-1 text-blue-400"></i>${student.admission_number || 'N/A'}</span>
+                        <span class="inline-flex items-center"><i class="fas fa-school mr-1 text-green-400"></i>${student.class_name || 'N/A'}</span>
+                        <span class="inline-flex items-center"><i class="fas fa-user mr-1 text-purple-400"></i>${student.father_name || 'N/A'}</span>
+                    </div>
+                </label>
+            `;
+            
+            const checkbox = studentDiv.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedStudents.add(student.id);
+                    studentDiv.classList.add('bg-blue-50', 'border-blue-300');
+                } else {
+                    selectedStudents.delete(student.id);
+                    studentDiv.classList.remove('bg-blue-50', 'border-blue-300');
+                }
+                updateSelectedStudentsDisplay();
+            });
+            
+            if (selectedStudents.has(student.id)) {
+                studentDiv.classList.add('bg-blue-50', 'border-blue-300');
+            }
+            
+            studentList.appendChild(studentDiv);
+        });
+    }
+
+    // Enhanced selected students display
+    function updateSelectedStudentsDisplay() {
+        if (!selectedStudentsList || !selectedStudentsInput) return;
+        
+        selectedStudentsList.innerHTML = '';
+        const selectedArray = Array.from(selectedStudents);
+        selectedStudentsInput.value = selectedArray.join(',');
+        
+        if (selectedArray.length === 0) {
+            selectedStudentsList.innerHTML = '<div class="text-center py-6"><div class="text-slate-400 text-lg font-medium">No students selected</div><div class="text-slate-300 text-sm mt-2">Select students from the list above</div></div>';
+            return;
+        }
+
+        selectedArray.forEach((studentId, index) => {
+            const studentDiv = document.createElement('div');
+            studentDiv.className = 'flex items-center justify-between p-4 glass rounded-2xl border border-white/20 animate-slide-up';
+            studentDiv.style.animationDelay = `${index * 100}ms`;
+            
+            studentDiv.innerHTML = `
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-user text-white text-sm"></i>
+                    </div>
+                    <span class="font-bold text-slate-800">${studentId}</span>
+                </div>
+                <button type="button" onclick="removeStudent('${studentId}')" 
+                        class="btn-3d px-3 py-1 bg-gradient-to-r from-red-400 to-red-500 text-white font-medium rounded-xl hover:from-red-500 hover:to-red-600 transition-all duration-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            selectedStudentsList.appendChild(studentDiv);
+        });
+    }
+
+        // Remove student from selection
+        window.removeStudent = function(studentId) {
+            selectedStudents.delete(studentId);
+            const checkbox = document.getElementById(`student-${studentId}`);
+            if (checkbox) checkbox.checked = false;
+            updateSelectedStudentsDisplay();
+        };
+
+    // Enhanced search with loading states
+    function searchStudents(searchTerm) {
+        if (!studentList) return;
+        
+        if (searchTerm.length < 2) {
+            loadAllStudents();
+            return;
+        }
+
+        // Show loading state
+        studentList.innerHTML = '<div class="text-center py-8"><div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div><div class="text-slate-600 font-medium">Searching students...</div></div>';
+
+        fetch(`{% url 'fines:ajax_search_students' %}?search=${encodeURIComponent(searchTerm)}`)
+            .then(response => response.json())
+            .then(data => {
+                displayStudents(data.students || []);
+            })
+            .catch(error => {
+                console.error('Error searching students:', error);
+                studentList.innerHTML = '<div class="text-center py-8"><div class="text-red-500 text-lg font-medium mb-2">Search Error</div><div class="text-slate-400 text-sm">Please try again or contact support</div></div>';
+            });
+    }
+
+    // Initialize with enhanced animations
+    setTimeout(() => {
+        toggleFields();
+        updateSelectedStudentsDisplay();
+        updateClassDisplay();
+        updateCharacterCount();
+    }, 500);
+    
+    // Reason field enhancements
+    window.setReason = function(reasonText) {
+        const reasonField = document.getElementById('id_reason');
+        if (reasonField) {
+            reasonField.value = reasonText;
+            reasonField.focus();
+            reasonField.classList.add('animate-pulse');
+            setTimeout(() => reasonField.classList.remove('animate-pulse'), 1000);
+            updateCharacterCount();
+        }
+    };
+    
+    window.clearReason = function() {
+        const reasonField = document.getElementById('id_reason');
+        if (reasonField) {
+            reasonField.value = '';
+            reasonField.focus();
+            updateCharacterCount();
+        }
+    };
+    
+    window.updateCharacterCount = function() {
+        const reasonField = document.getElementById('id_reason');
+        const charCount = document.getElementById('char-count');
+        const charIndicator = document.getElementById('char-indicator');
+        
+        if (reasonField && charCount) {
+            const currentLength = reasonField.value.length;
+            const maxLength = 500;
+            
+            charCount.textContent = `${currentLength}/${maxLength}`;
+            
+            // Update indicator color based on usage
+            if (charIndicator) {
+                charIndicator.classList.remove('bg-slate-300', 'bg-yellow-400', 'bg-orange-500', 'bg-red-500');
+                
+                if (currentLength < maxLength * 0.7) {
+                    charIndicator.classList.add('bg-green-400');
+                    charCount.classList.remove('text-yellow-600', 'text-orange-600', 'text-red-600');
+                    charCount.classList.add('text-slate-400');
+                } else if (currentLength < maxLength * 0.9) {
+                    charIndicator.classList.add('bg-yellow-400');
+                    charCount.classList.remove('text-slate-400', 'text-orange-600', 'text-red-600');
+                    charCount.classList.add('text-yellow-600');
+                } else if (currentLength < maxLength) {
+                    charIndicator.classList.add('bg-orange-500');
+                    charCount.classList.remove('text-slate-400', 'text-yellow-600', 'text-red-600');
+                    charCount.classList.add('text-orange-600');
+                } else {
+                    charIndicator.classList.add('bg-red-500');
+                    charCount.classList.remove('text-slate-400', 'text-yellow-600', 'text-orange-600');
+                    charCount.classList.add('text-red-600');
+                }
+            }
+        }
+    };
+
+    // Enhanced event listeners
+    targetScopeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleFields);
+    });
+    
+    // Enhanced search functionality
+    if (studentSearch) {
+        let searchTimeout;
+        studentSearch.addEventListener('input', function() {
+            this.classList.add('animate-pulse');
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchStudents(this.value);
+                this.classList.remove('animate-pulse');
+            }, 300);
+        });
+    }
+    
+    // Add smooth scrolling and enhanced interactions
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+});
+</script>
+
+<style>
+/* Enhanced animations and effects */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in { animation: fadeIn 0.6s ease-out; }
+.animate-fade-out { animation: fadeOut 0.3s ease-out; }
+.animate-slide-up { animation: slideUp 0.5s ease-out; }
+.animate-zoom-in { animation: zoomIn 0.4s ease-out; }
+
+/* Glass morphism effects */
+.glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced shadows */
+.shadow-brutal {
+    box-shadow: 8px 8px 0px 0px rgba(0,0,0,0.1);
+}
+
+.shadow-brutal-lg {
+    box-shadow: 12px 12px 0px 0px rgba(0,0,0,0.1);
+}
+
+.shadow-neon {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* 3D button effects */
+.btn-3d {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+.btn-3d:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-3d:active {
+    transform: translateY(0);
+}
+
+/* Gradient text effects */
+.gradient-text {
+    background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.gradient-text-rainbow {
+    background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Responsive enhancements */
+@media (max-width: 768px) {
+    .glass { backdrop-filter: blur(10px); }
+    .shadow-brutal, .shadow-brutal-lg { box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.1); }
+}
+</style>
+{% endblock %}

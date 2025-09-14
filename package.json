@@ -1,0 +1,24 @@
+{
+  "name": "School-Management-System",
+  "description": "description",
+  "authors": "W3UR",
+  "version": "1.0.0",
+  "main": "pathToMain",
+  "dependencies": {}
+}
+
+{
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.4"
+  },
+  "scripts": {
+    "tailwindcss:version": "tailwindcss -v"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.0.9",
+    "@tailwindcss/vite": "^4.1.4",
+    "lucide": "^0.477.0"
+  }
+}

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+{% load static %}
+{% load tz %}
+
+<html>
+<head>
+    <title>Fee Receipt</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .print-page {
+                width: 45%;
+                min-height: 100mm;
+                max-height: 140mm;
+                float: left;
+                box-sizing: border-box;
+                padding: 3mm;
+                position: relative;
+                page-break-inside: avoid;
+            }
+            .cut-mark {
+                position: absolute;
+                top: 50%;
+                left: 0;
+                width: 100%;
+                border-top: 0.5px dashed #aaa;
+                transform: translateY(-50%);
+            }
+            .print-button {
+                display: none;
+            }
+            .fee-tbody {
+                max-height: 50mm;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            line-height: 1.1;
+            color: #333;
+            background-color: #fff;
+        }
+
+        .receipt-container {
+            border: 0.5px solid #ccc;
+            padding: 3mm;
+            min-height: 94mm;
+            max-height: 140mm;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .school-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5mm;
+            padding-bottom: 1.5mm;
+            border-bottom: 0.5px solid #eee;
+        }
+
+        .school-logo-container {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #ddd;
+            padding: 1.5px;
+        }
+
+        .school-logo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .school-info {
+            flex: 1;
+            text-align: center;
+            padding: 0 3mm;
+        }
+
+        .school-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 0.5mm;
+        }
+
+        .contact-info {
+            font-size: 8px;
+            line-height: 1.1;
+        }
+
+        .receipt-title {
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            margin: 1.5mm 0;
+            text-transform: uppercase;
+        }
+
+        .copy-label {
+            text-align: right;
+            font-size: 8px;
+            margin-bottom: 1mm;
+        }
+
+        .info-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1mm;
+            font-size: 9px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2mm 0;
+            font-size: 8px;
+            flex: 1;
+        }
+        
+        .fee-table-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .fee-tbody {
+            display: block;
+            max-height: 45mm;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .fee-tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 1.2mm;
+            border: 0.5px solid #ddd;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .fee-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        th {
+            background-color: #f8f8f8;
+            font-weight: bold;
+        }
+
+        .amount-cell {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .payment-info {
+            margin-top: auto;
+            padding-top: 2mm;
+            border-top: 0.5px dashed #ddd;
+            font-size: 8px;
+        }
+
+        .signature-line {
+            margin-top: 3mm;
+            text-align: right;
+            font-size: 8px;
+        }
+
+        .signature-space {
+            display: inline-block;
+            width: 70px;
+            border-top: 0.5px solid #666;
+            margin-left: 3mm;
+        }
+
+        @media screen {
+            body {
+                background-color: #f5f5f5;
+                padding: 8px;
+            }
+            .print-page {
+                width: 190mm;
+                max-width: 100%;
+                margin: 0 auto 8px;
+                background: white;
+                box-shadow: 0 0 3px rgba(0,0,0,0.1);
+            }
+            .print-button-container {
+                text-align: center;
+                margin-bottom: 8px;
+            }
+            .print-button {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                font-size: 11px;
+                border-radius: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-button-container">
+        <button onclick="window.print()" class="print-button">🖨️ Print</button>
+    </div>
+
+    {% for copy in copy_labels %}
+    {% timezone "Asia/Kolkata" %}
+    <div class="print-page">
+        <div class="receipt-container">
+            <div class="copy-label">{{ copy }} Copy</div>
+            
+            <div class="school-header">
+                {% if school and school.logo %}
+                <div class="school-logo-container">
+                    <img src="{{ school.logo.url }}" alt="School Logo" class="school-logo">
+                </div>
+                {% endif %}
+
+                <div class="school-info">
+                    {% if school %}
+                    <div class="school-name">{{ school.school_name|default:"Our School" }}</div>
+                    <div class="contact-info">
+                        {{ school.address|default:"" }}
+                        {% if school.mobile_number %} Ph:{{ school.mobile_number }}{% endif %}
+                        {% if school.email %} |{{ school.email }}{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="receipt-title">FEE RECEIPT</div>
+
+            <div class="info-grid">
+                <div><strong>Student:</strong> {{ student.get_full_display_name }}</div>
+                <div><strong>R.No:</strong> {{ receipt_no }}</div>
+            </div>
+            <div class="info-grid">
+                <div><strong>Class:</strong> {{ class_name }}</div>
+                <div><strong>Date:</strong> {{ deposit_date|date:"d/m/y H:i" }}</div>
+            </div>
+
+            <div class="fee-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            {% if show_discount %}
+                            <th style="width: 40%">Fee Type</th>
+                            <th class="amount-cell" style="width: 20%">Amt</th>
+                            <th class="amount-cell" style="width: 20%">Disc</th>
+                            <th class="amount-cell" style="width: 20%">Paid</th>
+                            {% else %}
+                            <th style="width: 50%">Fee Type</th>
+                            <th class="amount-cell" style="width: 25%">Amt</th>
+                            <th class="amount-cell" style="width: 25%">Paid</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                </table>
+                
+                <table style="margin-top: 0;">
+                    <tbody class="fee-tbody">
+                        {% for payment in regular_payments %}
+                        <tr>
+                            {% if show_discount %}
+                            <td style="width: 40%">
+                                 {% if payment.note and "Fee Payment:" in payment.note %}
+                                    {{ payment.note|slice:"13:"|slice:":19" }}
+                                {% else %}
+                                    {{ payment.note|default:"Fee"|slice:":19" }}
+                                {% endif %}
+                            </td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.amount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.discount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            {% else %}
+                            <td style="width: 50%">
+                                {% if payment.note and "Fee Payment:" in payment.note %}
+                                    {{ payment.note|slice:"13:" }}
+                                {% else %}
+                                    {{ payment.note|default:"Fee" }}
+                                {% endif %}
+                            </td>
+                            <td class="amount-cell" style="width: 25%">₹{{ payment.amount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 25%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                        {% for payment in cf_payments %}
+                        <tr style="background-color: #fff8dc;">
+                            {% if show_discount %}
+                            <td style="width: 40%"> Carry Forward</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.amount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.discount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            {% else %}
+                            <td style="width: 50%"> Carry Forward</td>
+                            <td class="amount-cell" style="width: 25%">₹{{ payment.amount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 25%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                        {% for payment in fine_payments %}
+                        <tr style="background-color: #ffe4e1;">
+                            {% if show_discount %}
+                            <td style="width: 40%">[FINE] {{ payment.note|slice:"14:"|slice:":18" }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.amount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.discount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 20%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            {% else %}
+                            <td style="width: 50%">[FINE] {{ payment.note|slice:"14:" }}</td>
+                            <td class="amount-cell" style="width: 25%">₹{{ payment.amount|floatformat:0 }}</td>
+                            <td class="amount-cell" style="width: 25%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <table style="margin-top: 1mm; border-top: 1px solid #333;">
+                    <tfoot>
+                        <tr style="background: #f0f0f0;">
+                            {% if show_discount %}
+                            <td style="width: 40%"><strong>Total</strong></td>
+                            <td class="amount-cell" style="width: 20%"><strong>₹{{ total_amount|floatformat:0 }}</strong></td>
+                            <td class="amount-cell" style="width: 20%"><strong>₹{{ total_discount|floatformat:0 }}</strong></td>
+                            <td class="amount-cell" style="width: 20%"><strong>₹{{ total_paid|floatformat:0 }}</strong></td>
+                            {% else %}
+                            <td style="width: 50%"><strong>Total</strong></td>
+                            <td class="amount-cell" style="width: 25%"><strong>₹{{ total_amount|floatformat:0 }}</strong></td>
+                            <td class="amount-cell" style="width: 25%"><strong>₹{{ total_paid|floatformat:0 }}</strong></td>
+                            {% endif %}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="payment-info">
+                <div class="info-grid">
+                    <div><strong>Mode:</strong> {{ payments.first.payment_mode }}</div>
+                    <div><strong>Txn:</strong> {{ payments.first.transaction_no|default:"-" }}</div>
+                </div>
+                <div class="info-grid"><div><strong>Remarks:</strong> Thank you</div></div>
+            </div>
+
+            <div class="signature-line">Auth:<span class="signature-space"></span></div>
+        </div>
+        {% if not forloop.last %}<div class="cut-mark"></div>{% endif %}
+    </div>
+    {% endtimezone %}
+    {% endfor %}
+</body>
+</html>

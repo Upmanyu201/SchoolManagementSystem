@@ -16,6 +16,8 @@ urlpatterns = [
     path('add/', views.add_student, name='add_student'),
     path('edit/<int:id>/', views.edit_student, name='edit_student'),
     path('delete/<int:id>/', views.delete_student, name='delete_student'),
+    path('change-status/<int:id>/', views.change_student_status, name='change_student_status'),
+    path('api/status-counts/', views.get_status_counts, name='get_status_counts'),
 
     # Student-Centric Dashboard URLs
     path('dashboard/<str:admission_number>/', student_dashboard_views.student_unified_dashboard, name='student_dashboard'),

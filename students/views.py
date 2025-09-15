@@ -29,50 +29,24 @@ def student_list(request):
         # Get search and filter parameters
         search_query = request.GET.get('search', '').strip()
         class_filter = request.GET.get('class_filter')
+        status_filter = request.GET.get('status', 'ACTIVE')  # Default to ACTIVE
         page_size = int(request.GET.get('page_size', 20))
         
-        # Build queryset with optimized queries (use LEFT JOIN to include students without class)
-        queryset = Student.objects.select_related('class_section').order_by('first_name', 'last_name')
+        # Build queryset with optimized queries and status filtering
+        queryset = Student.objects.get_list_optimized(status_filter).order_by('first_name', 'last_name')
         
         # Apply search filter with smart name matching
         if search_query:
             clean_query = sanitize_input(search_query)
-            logger.info(f"Applying search filter: '{clean_query}'")
+            logger.info(f"Applying search filter: '{clean_query}' with status: {status_filter}")
             
-            # Smart search: handle "First Last" format
-            search_parts = clean_query.strip().split()
-            
-            if len(search_parts) >= 2:
-                # Multi-word search: try "First Last" combination
-                first_part = search_parts[0]
-                last_part = ' '.join(search_parts[1:])  # Handle "First Middle Last"
-                
-                queryset = queryset.filter(
-                    # Exact name combination
-                    (Q(first_name__icontains=first_part) & Q(last_name__icontains=last_part)) |
-                    # Reverse combination
-                    (Q(first_name__icontains=last_part) & Q(last_name__icontains=first_part)) |
-                    # Single field matches
-                    Q(first_name__icontains=clean_query) |
-                    Q(last_name__icontains=clean_query) |
-                    Q(admission_number__icontains=clean_query) |
-                    Q(mobile_number__icontains=clean_query) |
-                    Q(email__icontains=clean_query)
-                )
-            else:
-                # Single word search
-                queryset = queryset.filter(
-                    Q(first_name__icontains=clean_query) |
-                    Q(last_name__icontains=clean_query) |
-                    Q(admission_number__icontains=clean_query) |
-                    Q(mobile_number__icontains=clean_query) |
-                    Q(email__icontains=clean_query)
-                )
+            # Use the manager's search method with status filtering
+            queryset = Student.objects.search_students(clean_query, status_filter)
             
             logger.info(f"After search filter count: {queryset.count()}")
         
         # Apply class filter
-        if class_filter:
+        if class_filter and not search_query:  # Only apply if not already filtered by search
             try:
                 class_id = int(class_filter)
                 logger.info(f"Applying class filter: class_section_id={class_id}")
@@ -106,11 +80,11 @@ def student_list(request):
         # Debug: Log queryset info
         total_count = queryset.count()
         logger.info(f"Student queryset count: {total_count}")
-        logger.info(f"Search query: '{search_query}', Class filter: '{class_filter}'")
+        logger.info(f"Search query: '{search_query}', Class filter: '{class_filter}', Status filter: '{status_filter}'")
         
         # Log the actual SQL query for debugging
-        if total_count == 0 and (search_query or class_filter):
-            basic_count = Student.objects.count()
+        if total_count == 0 and (search_query or class_filter or status_filter != 'ACTIVE'):
+            basic_count = Student.objects.all_statuses().count()
             logger.warning(f"Filtered query returned 0, but basic query has {basic_count} students")
             logger.info(f"Queryset SQL: {queryset.query}")
             # DO NOT override queryset - respect the filters!
@@ -156,6 +130,13 @@ def student_list(request):
         except ImportError:
             classes = []
         
+        # Get status counts for tabs
+        try:
+            status_counts = Student.objects.get_status_counts()
+        except Exception as e:
+            logger.warning(f"Status counts failed: {e}")
+            status_counts = {'ACTIVE': 0, 'SUSPENDED': 0, 'ARCHIVED': 0, 'GRADUATED': 0}
+        
         # Get dashboard stats with fallback
         try:
             stats = StudentService.get_dashboard_stats()
@@ -173,11 +154,17 @@ def student_list(request):
             'page_obj': page_obj,
             'search_query': search_query or '',
             'class_filter': class_filter or '',
+            'status_filter': status_filter,
             'page_size': page_size,
             'classes': classes or [],
             'stats': stats or {'total_students': 0},
             'total_students': paginator.count if paginator else 0,
-            'paginator': paginator  # Add paginator to context
+            'paginator': paginator,
+            'status_counts': status_counts,
+            'active_count': status_counts.get('ACTIVE', 0),
+            'suspended_count': status_counts.get('SUSPENDED', 0),
+            'archived_count': status_counts.get('ARCHIVED', 0),
+            'graduated_count': status_counts.get('GRADUATED', 0),
         }
         
         # Debug log final context
@@ -189,10 +176,17 @@ def student_list(request):
         
         # Instead of showing error, create working context with basic data
         try:
-            # Create minimal working context (ensure all students are included)
-            queryset = Student.objects.all().order_by('first_name', 'last_name')
+            # Create minimal working context with status filtering
+            status_filter = request.GET.get('status', 'ACTIVE')
+            queryset = Student.objects.get_list_optimized(status_filter).order_by('first_name', 'last_name')
             paginator = Paginator(queryset, 20)
             page_obj = paginator.get_page(1)
+            
+            # Get status counts for fallback
+            try:
+                status_counts = Student.objects.get_status_counts()
+            except:
+                status_counts = {'ACTIVE': 0, 'SUSPENDED': 0, 'ARCHIVED': 0, 'GRADUATED': 0}
             
             # Get classes safely
             try:
@@ -205,11 +199,17 @@ def student_list(request):
                 'page_obj': page_obj,
                 'search_query': '',
                 'class_filter': '',
+                'status_filter': status_filter,
                 'page_size': 20,
                 'classes': classes or [],
                 'stats': {'total_students': paginator.count if paginator else 0},
                 'total_students': paginator.count if paginator else 0,
-                'paginator': paginator
+                'paginator': paginator,
+                'status_counts': status_counts,
+                'active_count': status_counts.get('ACTIVE', 0),
+                'suspended_count': status_counts.get('SUSPENDED', 0),
+                'archived_count': status_counts.get('ARCHIVED', 0),
+                'graduated_count': status_counts.get('GRADUATED', 0),
             }
             
             messages.warning(request, "Some features may be limited. Student list loaded successfully.")
@@ -219,7 +219,7 @@ def student_list(request):
             logger.error(f"Fallback also failed: {sanitize_input(str(fallback_error))}")
             messages.error(request, "We're having trouble loading the student list. Please try again.")
             # Create empty page_obj for error case
-            empty_paginator = Paginator(Student.objects.none(), 20)
+            empty_paginator = Paginator(Student.objects.all_statuses().none(), 20)
             empty_page_obj = empty_paginator.get_page(1)
             return render(request, 'students/students_list.html', {
                 'page_obj': empty_page_obj, 
@@ -227,9 +227,15 @@ def student_list(request):
                 'total_students': 0,
                 'search_query': '',
                 'class_filter': '',
+                'status_filter': 'ACTIVE',
                 'page_size': 20,
                 'classes': [],
-                'paginator': empty_paginator
+                'paginator': empty_paginator,
+                'status_counts': {'ACTIVE': 0, 'SUSPENDED': 0, 'ARCHIVED': 0, 'GRADUATED': 0},
+                'active_count': 0,
+                'suspended_count': 0,
+                'archived_count': 0,
+                'graduated_count': 0,
             })
 
 @login_required
@@ -336,29 +342,69 @@ def edit_student(request, id):
 @require_POST
 @csrf_protect
 @module_required('students', 'edit')
-def delete_student(request, id):
+def change_student_status(request, id):
+    """Change student status (suspend, archive, graduate, reactivate)"""
     try:
-        # Validate ID parameter
         student_id = int(id)
         if student_id <= 0:
             raise ValidationError("Invalid student ID")
         
-        student = get_object_or_404(Student, id=student_id)
-        student_name = sanitize_input(f"{student.first_name} {student.last_name}")
+        student = get_object_or_404(Student.objects.all_statuses(), id=student_id)
+        new_status = request.POST.get('status')
+        reason = request.POST.get('reason', '').strip()
         
-        # Use optimized service for safe deletion
-        deletion_successful = StudentService.delete_student_safe(student, request.user)
+        if new_status not in ['ACTIVE', 'SUSPENDED', 'ARCHIVED', 'GRADUATED']:
+            messages.error(request, "Invalid status selected.")
+            return redirect('students:student_list')
         
-        if deletion_successful:
-            messages.success(request, f'Perfect! {student_name} has been removed successfully.')
-        else:
-            messages.warning(request, f"Cannot delete {student_name} - student has related records (fees, attendance). Please contact administrator.")
+        if not reason and new_status != 'ACTIVE':
+            messages.error(request, "Please provide a reason for the status change.")
+            return redirect('students:student_list')
+        
+        # Change status with audit trail
+        student.change_status(new_status, reason, request.user.username)
+        
+        status_messages = {
+            'ACTIVE': f"Great! {student.first_name} {student.last_name} has been reactivated successfully.",
+            'SUSPENDED': f"{student.first_name} {student.last_name} has been suspended. They can be reactivated when ready.",
+            'ARCHIVED': f"{student.first_name} {student.last_name} has been archived. All records are preserved.",
+            'GRADUATED': f"Congratulations! {student.first_name} {student.last_name} has been marked as graduated."
+        }
+        
+        messages.success(request, status_messages.get(new_status, "Status updated successfully."))
         
     except (ValueError, ValidationError):
         messages.error(request, "Invalid student information. Please try again.")
     except Exception as e:
-        logger.error(f"Error deleting student {sanitize_input(str(id))} by user {sanitize_input(str(request.user.id))}: {sanitize_input(str(e))}")
-        messages.error(request, "We couldn't remove the student right now. Please try again.")
+        logger.error(f"Error changing student status {sanitize_input(str(id))} by user {sanitize_input(str(request.user.id))}: {sanitize_input(str(e))}")
+        messages.error(request, "We couldn't update the student status right now. Please try again.")
+    
+    return redirect('students:student_list')
+
+@login_required
+@require_POST
+@csrf_protect
+@module_required('students', 'edit')
+def delete_student(request, id):
+    """Legacy delete endpoint - now archives student instead"""
+    try:
+        student_id = int(id)
+        if student_id <= 0:
+            raise ValidationError("Invalid student ID")
+        
+        student = get_object_or_404(Student.objects.all_statuses(), id=student_id)
+        student_name = sanitize_input(f"{student.first_name} {student.last_name}")
+        
+        # Archive instead of delete to preserve data
+        student.change_status('ARCHIVED', 'Archived via delete action', request.user.username)
+        
+        messages.success(request, f'{student_name} has been archived successfully. All records are preserved.')
+        
+    except (ValueError, ValidationError):
+        messages.error(request, "Invalid student information. Please try again.")
+    except Exception as e:
+        logger.error(f"Error archiving student {sanitize_input(str(id))} by user {sanitize_input(str(request.user.id))}: {sanitize_input(str(e))}")
+        messages.error(request, "We couldn't archive the student right now. Please try again.")
     
     return redirect('students:student_list')
 
@@ -462,3 +508,20 @@ def coordination_api(request):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)})
+
+@login_required
+@module_required('students', 'view')
+def get_status_counts(request):
+    """API endpoint to get student status counts"""
+    try:
+        counts = Student.objects.get_status_counts()
+        return JsonResponse({
+            'success': True,
+            'counts': counts
+        })
+    except Exception as e:
+        logger.error(f"Error getting status counts: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Could not retrieve status counts'
+        })

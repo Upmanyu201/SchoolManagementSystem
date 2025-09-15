@@ -19,12 +19,32 @@ class StudentManager(models.Manager):
     """Custom manager for optimized student queries"""
     
     def get_queryset(self):
-        """Default optimized queryset"""
+        """Default optimized queryset - only active students by default"""
+        return super().get_queryset().select_related('class_section').filter(status='ACTIVE')
+    
+    def all_statuses(self):
+        """Get students with all statuses"""
         return super().get_queryset().select_related('class_section')
+    
+    def active(self):
+        """Get only active students"""
+        return self.filter(status='ACTIVE')
+    
+    def suspended(self):
+        """Get only suspended students"""
+        return self.all_statuses().filter(status='SUSPENDED')
+    
+    def archived(self):
+        """Get only archived students"""
+        return self.all_statuses().filter(status='ARCHIVED')
+    
+    def graduated(self):
+        """Get only graduated students"""
+        return self.all_statuses().filter(status='GRADUATED')
     
     def get_with_complete_data(self, admission_number):
         """Single query to load all student data with relationships"""
-        return self.select_related(
+        return self.all_statuses().select_related(
             'class_section'
         ).prefetch_related(
             'fee_deposits',
@@ -33,34 +53,67 @@ class StudentManager(models.Manager):
     
     def get_dashboard_data(self, admission_number):
         """Optimized query for dashboard with minimal data"""
-        return self.select_related(
+        return self.all_statuses().select_related(
             'class_section'
         ).only(
             'admission_number', 'first_name', 'last_name', 'student_image',
-            'mobile_number', 'email', 'due_amount', 'created_at',
+            'mobile_number', 'email', 'due_amount', 'created_at', 'status',
             'class_section__class_name', 'class_section__section_name'
         ).get(admission_number=admission_number)
     
-    def get_list_optimized(self):
-        """Optimized queryset for student list view"""
-        return self.select_related('class_section').only(
+    def get_list_optimized(self, status_filter=None):
+        """Optimized queryset for student list view with status filtering"""
+        queryset = self.all_statuses().select_related('class_section').only(
             'id', 'admission_number', 'first_name', 'last_name',
-            'mobile_number', 'email', 'due_amount', 'created_at',
+            'mobile_number', 'email', 'due_amount', 'created_at', 'status',
             'class_section__class_name', 'class_section__section_name'
-        ).order_by('first_name', 'last_name')
+        )
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        return queryset.order_by('first_name', 'last_name')
     
-    def search_students(self, query):
-        """Optimized search with indexed fields"""
+    def search_students(self, query, status_filter=None):
+        """Optimized search with indexed fields and status filtering"""
         from django.db.models import Q
-        return self.select_related('class_section').filter(
+        queryset = self.all_statuses().select_related('class_section').filter(
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query) |
             Q(admission_number__icontains=query) |
             Q(mobile_number__icontains=query)
-        ).only(
+        )
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        return queryset.only(
             'id', 'admission_number', 'first_name', 'last_name',
-            'mobile_number', 'class_section__class_name'
+            'mobile_number', 'status', 'class_section__class_name'
         )[:20]  # Limit results
+    
+    def get_status_counts(self):
+        """Get count of students by status with caching"""
+        cache_key = "student_status_counts"
+        counts = cache.get(cache_key)
+        
+        if counts is None:
+            from django.db.models import Count
+            counts = self.all_statuses().values('status').annotate(count=Count('id'))
+            counts_dict = {item['status']: item['count'] for item in counts}
+            
+            # Ensure all statuses are represented
+            final_counts = {
+                'ACTIVE': counts_dict.get('ACTIVE', 0),
+                'SUSPENDED': counts_dict.get('SUSPENDED', 0),
+                'ARCHIVED': counts_dict.get('ARCHIVED', 0),
+                'GRADUATED': counts_dict.get('GRADUATED', 0),
+            }
+            
+            cache.set(cache_key, final_counts, 300)  # Cache for 5 minutes
+            counts = final_counts
+        
+        return counts
 
 
 class Student(BaseModel):
@@ -100,6 +153,13 @@ class Student(BaseModel):
         ('AB-', 'AB-'),
     ]
 
+    STATUS_CHOICES = [
+        ('ACTIVE', 'Active'),
+        ('SUSPENDED', 'Suspended'),
+        ('ARCHIVED', 'Archived'),
+        ('GRADUATED', 'Graduated'),
+    ]
+
     admission_number = models.CharField(max_length=20, unique=True, verbose_name="Admission Number", validators=[validate_admission_number])
     first_name = models.CharField(max_length=50, verbose_name="First Name")
     last_name = models.CharField(max_length=50, verbose_name="Last Name")
@@ -136,6 +196,10 @@ class Student(BaseModel):
     aadhar_card = models.FileField(upload_to='students/documents/', verbose_name="Aadhar Card", validators=[validate_file_size, validate_file_extension])
     transfer_certificate = models.FileField(upload_to='students/documents/', verbose_name="Transfer Certificate", validators=[validate_file_size, validate_file_extension])
     due_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', verbose_name="Status")
+    status_reason = models.TextField(blank=True, null=True, verbose_name="Status Change Reason")
+    status_changed_date = models.DateTimeField(blank=True, null=True, verbose_name="Status Changed Date")
+    status_changed_by = models.CharField(max_length=100, blank=True, null=True, verbose_name="Status Changed By")
     
     objects = StudentManager()
     
@@ -148,6 +212,8 @@ class Student(BaseModel):
             models.Index(fields=['mobile_number']),
             models.Index(fields=['email']),
             models.Index(fields=['due_amount']),
+            models.Index(fields=['status']),
+            models.Index(fields=['status', 'class_section']),
         ]
         ordering = ['first_name', 'last_name']
     
@@ -463,6 +529,34 @@ class Student(BaseModel):
         except:
             return []
     
+    def change_status(self, new_status, reason, changed_by):
+        """Change student status with audit trail"""
+        if new_status not in dict(self.STATUS_CHOICES):
+            raise ValueError(f"Invalid status: {new_status}")
+        
+        old_status = self.status
+        self.status = new_status
+        self.status_reason = reason
+        self.status_changed_date = timezone.now()
+        self.status_changed_by = str(changed_by)
+        self.save(update_fields=['status', 'status_reason', 'status_changed_date', 'status_changed_by'])
+        
+        # Log status change
+        logger.info(f"Student {self.admission_number} status changed from {old_status} to {new_status} by {changed_by}")
+        
+        # Clear cache
+        self.invalidate_cache()
+    
+    def get_status_display_info(self):
+        """Get status with color and icon for UI"""
+        status_info = {
+            'ACTIVE': {'color': 'green', 'icon': 'user-check', 'label': 'Active'},
+            'SUSPENDED': {'color': 'yellow', 'icon': 'pause', 'label': 'Suspended'},
+            'ARCHIVED': {'color': 'gray', 'icon': 'archive', 'label': 'Archived'},
+            'GRADUATED': {'color': 'blue', 'icon': 'graduation-cap', 'label': 'Graduated'},
+        }
+        return status_info.get(self.status, status_info['ACTIVE'])
+    
     def invalidate_cache(self):
         """Clear all cached data for this student"""
         cache_keys = [
@@ -472,7 +566,8 @@ class Student(BaseModel):
             f"financial_summary_{self.id}",
             f"attendance_pct_{self.id}",
             f"recent_activities_{self.id}",
-            f"students_list_{self.id}"  # Clear list cache for any user
+            f"students_list_{self.id}",  # Clear list cache for any user
+            f"student_status_counts",  # Clear status counts cache
         ]
         cache.delete_many(cache_keys)
         

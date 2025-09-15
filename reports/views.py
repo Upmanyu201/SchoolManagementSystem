@@ -378,7 +378,7 @@ def fees_report(request):
             Q(admission_number__icontains=search_term)
         )
     
-    students = Student.objects.filter(students_query).select_related(
+    students = Student.objects.all_statuses().filter(students_query).select_related(
         'class_section'
     ).order_by('class_section__class_name', 'first_name')
     

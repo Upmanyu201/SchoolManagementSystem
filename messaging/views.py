@@ -60,7 +60,7 @@ def messaging_dashboard(request):
     # Validation already done above
     
     # Get all students with their contact info
-    students_query = Student.objects.select_related('class_section')
+    students_query = Student.objects.all_statuses().select_related('class_section')
     if search:
         students_query = students_query.filter(
             Q(first_name__icontains=search) |
@@ -273,6 +273,18 @@ def send_individual_message(request):
             'success': False,
             'message': 'Something went wrong while sending the message. Please try again.'
         })
+        
+        return JsonResponse({
+            'success': result['success'],
+            'message': f'Perfect! Your message has been sent to {name}.' if result['success'] else f'Sorry, we couldn\'t send the message to {name}. Please try again.',
+            'error': result.get('error', '')
+        })
+    except Exception as e:
+        logger.error(f"Error sending individual message by user {request.user.id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Something went wrong while sending the message. Please try again.'
+        })
 
 
 @login_required
@@ -343,7 +355,7 @@ def send_bulk_message(request):
         
         # Build recipient list based on type
         if recipient_type == 'ALL_STUDENTS':
-            students = Student.objects.all()
+            students = Student.objects.all_statuses()            
             for student in students:
                 recipients.append({
                     'student': student,
@@ -365,7 +377,7 @@ def send_bulk_message(request):
                 })
         
         elif recipient_type == 'CLASS_STUDENTS' and class_id:
-            students = Student.objects.filter(class_section__id=class_id)
+            students = Student.objects.all_statuses().filter(class_section__id=class_id)
             for student in students:
                 recipients.append({
                     'student': student,
@@ -409,7 +421,7 @@ def get_class_students(request):
     """Get students for a specific class"""
     class_id = request.GET.get('class_id')
     if class_id:
-        students = Student.objects.filter(class_section__id=class_id).select_related('class_section')
+        students = Student.objects.all_statuses().filter(class_section__id=class_id).select_related('class_section')
         student_list = []
         for student in students:
             student_list.append({

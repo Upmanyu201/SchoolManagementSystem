@@ -17,7 +17,7 @@ class StudentForm(forms.ModelForm):
             'mother_name', 'date_of_birth', 'date_of_admission', 'aadhaar_number',
             'pen_number', 'class_section', 'gender', 'religion', 'caste_category',
             'address', 'mobile_number', 'email', 'blood_group', 'student_image',
-            'aadhar_card', 'transfer_certificate'
+            'aadhar_card', 'transfer_certificate', 'status'
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={
@@ -103,6 +103,9 @@ class StudentForm(forms.ModelForm):
             'transfer_certificate': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': '.pdf,.jpg,.jpeg,.png'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control'
             })
         }
 
@@ -117,7 +120,7 @@ class StudentForm(forms.ModelForm):
             'admission_number', 'first_name', 'last_name', 'father_name',
             'mother_name', 'date_of_birth', 'date_of_admission', 'gender',
             'religion', 'caste_category', 'address', 'mobile_number', 'email',
-            'blood_group'
+            'blood_group', 'status'
         ]
         
         # Make file uploads optional for easier testing
@@ -129,6 +132,13 @@ class StudentForm(forms.ModelForm):
         for field_name in required_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = True
+        
+        # Status field defaults to ACTIVE for new students
+        if not self.instance.pk:
+            self.fields['status'].initial = 'ACTIVE'
+        
+        # Only allow admins to change status in form (optional - can be removed if using modal only)
+        # self.fields['status'].widget = forms.HiddenInput()
 
     def clean_admission_number(self):
         """Validate and sanitize admission number"""

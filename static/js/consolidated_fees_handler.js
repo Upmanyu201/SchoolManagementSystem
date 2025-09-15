@@ -578,14 +578,8 @@ class ConsolidatedFeeManager {
         if (!paymentBtn) paymentBtn = form.querySelector('button');
         
         if (paymentBtn) {
-            let isProcessing = false;
             paymentBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                
-                if (isProcessing) {
-                    console.log('🚫 [FEES JS] Payment already processing');
-                    return;
-                }
                 
                 console.log('🔍 [FEES JS] Payment button clicked');
                 
@@ -596,25 +590,12 @@ class ConsolidatedFeeManager {
                 }
                 
                 this.updateTotals(form);
-                isProcessing = true;
                 
-                const originalText = paymentBtn.innerHTML;
-                paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
-                paymentBtn.disabled = true;
-                
-                // Show confirmation modal or submit directly - FIXED: Use student-specific modal
-                const admissionNumber = form.id.replace('depositForm-', '');
-                const modal = document.getElementById('paymentModal-' + admissionNumber) || document.getElementById('paymentModal');
+                // Show confirmation modal
+                const modal = document.getElementById('paymentModal');
                 if (modal) {
                     this.showPaymentModal(form, modal);
-                    // Reset button state after modal shows
-                    setTimeout(() => {
-                        paymentBtn.innerHTML = originalText;
-                        paymentBtn.disabled = false;
-                        isProcessing = false;
-                    }, 1000);
                 } else {
-                    // No modal found, submit directly
                     form.submit();
                 }
             });
@@ -883,25 +864,34 @@ class ConsolidatedFeeManager {
     showPaymentModal(form, modal) {
         console.log('🔍 [FEES JS] Showing payment modal');
         
-        // CRITICAL FIX: Verify modal belongs to correct student
-        const formAdmissionNumber = form.id.replace('depositForm-', '');
-        const modalId = modal.id;
-        const expectedModalId = 'paymentModal-' + formAdmissionNumber;
-        
-        if (modalId !== expectedModalId && modalId !== 'paymentModal') {
-            console.error('❌ [FEES JS] Modal mismatch!', {
-                formAdmission: formAdmissionNumber,
-                modalId: modalId,
-                expectedModalId: expectedModalId
-            });
+        // CRITICAL FIX: Position modal within correct student card
+        const studentCard = form.closest('.student-card');
+        if (!studentCard) {
+            console.error('❌ [FEES JS] Student card not found');
             return;
         }
         
-        // CRITICAL FIX: Clear modal data first to prevent previous student data
-        this.clearModalData(modal);
+        // Create overlay for student card
+        let overlay = studentCard.querySelector('.modal-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            overlay.style.zIndex = '40';
+            studentCard.style.position = 'relative';
+            studentCard.appendChild(overlay);
+        }
         
-        const selectedFees = form.querySelectorAll('.fee-checkbox:checked');
-        const paymentMethod = form.querySelector('#payment_mode').value;
+        // Move modal to correct student card
+        studentCard.appendChild(modal);
+        
+        // Clear modal data first
+        this.clearModalData(modal);
         
         // Get current student info from form
         const studentId = form.querySelector('input[name="student_id"]').value;
@@ -910,16 +900,16 @@ class ConsolidatedFeeManager {
         
         console.log('🔍 [FEES JS] Modal for student:', { studentId, admissionNumber, formId });
         
-        // CRITICAL FIX: Update modal student info dynamically
-        const studentCard = form.closest('.student-card');
-        if (studentCard) {
-            const studentName = studentCard.querySelector('h3')?.textContent?.trim() || 'Unknown Student';
-            const modalStudentName = modal.querySelector('.font-semibold');
-            const modalAdmissionNo = modal.querySelectorAll('.font-semibold')[1];
-            
-            if (modalStudentName) modalStudentName.textContent = studentName;
-            if (modalAdmissionNo) modalAdmissionNo.textContent = admissionNumber;
-        }
+        // Get student name from card
+        const studentName = studentCard.querySelector('h3')?.textContent?.trim() || 'Unknown Student';
+        const modalStudentName = modal.querySelector('.font-semibold');
+        const modalAdmissionNo = modal.querySelectorAll('.font-semibold')[1];
+        
+        if (modalStudentName) modalStudentName.textContent = studentName;
+        if (modalAdmissionNo) modalAdmissionNo.textContent = admissionNumber;
+        
+        const selectedFees = form.querySelectorAll('.fee-checkbox:checked');
+        const paymentMethod = form.querySelector('#payment_mode').value;
         
         // Update modal content
         const modalPaymentMethod = modal.querySelector('#modalPaymentMethod');
@@ -979,7 +969,15 @@ class ConsolidatedFeeManager {
             });
         }
         
-        // Show modal
+        // Position modal correctly within student card
+        modal.style.position = 'absolute';
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%)';
+        modal.style.zIndex = '50';
+        
+        // Show overlay and modal
+        overlay.style.display = 'block';
         modal.classList.remove('hidden');
         
         // Modal event handlers
@@ -987,7 +985,11 @@ class ConsolidatedFeeManager {
         const confirmBtn = modal.querySelector('#confirmPayment');
         
         if (cancelBtn) {
-            cancelBtn.onclick = () => modal.classList.add('hidden');
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+                overlay.style.display = 'none';
+                document.body.appendChild(modal);
+            };
         }
         
         if (confirmBtn) {

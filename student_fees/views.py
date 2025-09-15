@@ -93,7 +93,7 @@ class FeeDepositListView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '').strip()
-        queryset = super().get_queryset().select_related('class_section').order_by('admission_number')
+        queryset = Student.objects.all_statuses().select_related('class_section').order_by('admission_number')
         
         if query:
             safe_query = query[:50]
@@ -257,7 +257,7 @@ def get_student_fees(request):
             })
         
         logger.info(f"🔍 [FEES DEBUG] Searching for student with admission_number: {admission_number}")
-        student = Student.objects.select_related('class_section').get(admission_number=admission_number)
+        student = Student.objects.all_statuses().select_related('class_section').get(admission_number=admission_number)
         logger.info(f"✅ [FEES DEBUG] Student found: {student.first_name} {student.last_name} (ID: {student.id})")
         
         # Use integrated fee service
@@ -549,7 +549,7 @@ def student_fee_preview(request, student_id):
     """Student fee preview using centralized calculation service"""
     try:
         student_id = validate_numeric_id(student_id, "Student ID")
-        student = get_object_or_404(Student, pk=student_id)
+        student = get_object_or_404(Student.objects.all_statuses(), pk=student_id)
         
         # Use integrated fee service with fallback
         balance_info = integrated_service.get_student_balance_info(student)
@@ -673,7 +673,7 @@ def payment_confirmation(request, student_id):
     except ValidationError:
         raise Http404("Invalid student ID")
     
-    student = get_object_or_404(Student, pk=student_id)
+    student = get_object_or_404(Student.objects.all_statuses(), pk=student_id)
     receipt_no = request.GET.get('receipt_no') or request.session.get('last_receipt_no')
     
     if not receipt_no:
@@ -712,7 +712,7 @@ def bulk_delete_deposits(request):
             return redirect('student_fees:fee_deposit')
         
         student_id = validate_numeric_id(student_id, "Student ID")
-        student = get_object_or_404(Student, pk=student_id)
+        student = get_object_or_404(Student.objects.all_statuses(), pk=student_id)
         
         # Validate payment IDs and get deposits
         deposits = []

@@ -80,6 +80,7 @@ def cleanup_old_backups(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 # Export System - New functionality
+@module_required('backup', 'view')
 def export_module_data(request, module_name, format_type):
     """Export module data in specified format"""
     try:
@@ -98,6 +99,7 @@ def export_module_data(request, module_name, format_type):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@module_required('backup', 'view')
 def get_export_modules(request):
     """Get list of available modules for export"""
     modules = [
@@ -107,11 +109,7 @@ def get_export_modules(request):
         {'key': 'transport', 'name': 'Transport', 'icon': 'truck'},
         {'key': 'fees', 'name': 'Fee Setup', 'icon': 'credit-card'},
         {'key': 'student_fees', 'name': 'Fee Deposits', 'icon': 'dollar-sign'},
-        {'key': 'fines', 'name': 'Fines', 'icon': 'alert-triangle'},
         {'key': 'attendance', 'name': 'Attendance', 'icon': 'calendar-check'},
-        {'key': 'promotion', 'name': 'Promotions', 'icon': 'trending-up'},
-        {'key': 'messaging', 'name': 'Messages', 'icon': 'message-circle'},
-        {'key': 'users', 'name': 'Users', 'icon': 'user-cog'},
-        {'key': 'fees_report', 'name': 'Student Fee Report', 'icon': 'file-text', 'locked': True}
+        {'key': 'users', 'name': 'Users', 'icon': 'user-cog'}
     ]
-    return JsonResponse({'modules': modules})
+    return JsonResponse({'status': 'success', 'modules': modules})

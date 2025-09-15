@@ -111,145 +111,6 @@
     </div>
     {% endif %}
 
-    <!-- Dashboard Cards Section -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Students Card -->
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-blue-100 text-sm font-medium uppercase tracking-wide">Total Students</p>
-                    <p class="text-3xl font-bold mt-2">{{ page_obj.paginator.count|default:0 }}</p>
-                    <p class="text-blue-100 text-sm mt-1">Active Enrollments</p>
-                </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-3">
-                    <i class="fas fa-users text-2xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Annual Fees Card -->
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-purple-100 text-sm font-medium uppercase tracking-wide">Total Annual Fees</p>
-                    <p class="text-3xl font-bold mt-2">₹{{ totals.current_fees|floatformat:0|default:"785200" }}</p>
-                    <p class="text-purple-100 text-sm mt-1">Expected Revenue</p>
-                </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-3">
-                    <i class="fas fa-rupee-sign text-2xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Amount Collected Card -->
-        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-green-100 text-sm font-medium uppercase tracking-wide">Amount Collected</p>
-                    <p class="text-3xl font-bold mt-2">₹{{ totals.current_paid|floatformat:0|default:"57420" }}</p>
-                    <p class="text-green-100 text-sm mt-1">8% Collection Rate</p>
-                </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-3">
-                    <i class="fas fa-check-circle text-2xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Outstanding Due Card -->
-        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-xl">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-red-100 text-sm font-medium uppercase tracking-wide">Outstanding Due</p>
-                    <p class="text-3xl font-bold mt-2">₹{{ totals.final_due|floatformat:0|default:"707750" }}</p>
-                    <p class="text-red-100 text-sm mt-1">Requires Follow-up</p>
-                </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-3">
-                    <i class="fas fa-exclamation-triangle text-2xl"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Analytics Cards Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Collection Efficiency Card -->
-        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-chart-line mr-2 text-blue-500"></i>Collection Efficiency
-                </h3>
-                <i class="fas fa-chart-line text-2xl text-blue-500"></i>
-            </div>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">Collection Rate</span>
-                    <span class="text-2xl font-bold text-blue-600">{% widthratio totals.current_paid totals.current_fees 100 %}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-blue-500 h-3 rounded-full transition-all duration-1000" style="width: {% widthratio totals.current_paid totals.current_fees 100 %}%"></div>
-                </div>
-                <p class="text-sm text-gray-500">₹{{ totals.current_paid|floatformat:0 }} of ₹{{ totals.current_fees|floatformat:0 }} collected</p>
-            </div>
-        </div>
-
-        <!-- Payment Status Card -->
-        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-chart-pie mr-2 text-green-500"></i>Payment Status
-                </h3>
-                <i class="fas fa-chart-pie text-2xl text-green-500"></i>
-            </div>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center">
-                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                        <span class="text-gray-600">Fully Paid</span>
-                    </div>
-                    <span class="font-bold text-green-600">{{ payment_status_counts.fully_paid|default:72 }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center">
-                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-                        <span class="text-gray-600">Partial Payment</span>
-                    </div>
-                    <span class="font-bold text-yellow-600">{{ payment_status_counts.partial_paid|default:5 }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center">
-                        <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                        <span class="text-gray-600">Outstanding</span>
-                    </div>
-                    <span class="font-bold text-red-600">{{ payment_status_counts.outstanding|default:26 }}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Financial Breakdown Card -->
-        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-calculator mr-2 text-purple-500"></i>Financial Breakdown
-                </h3>
-                <i class="fas fa-calculator text-2xl text-purple-500"></i>
-            </div>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">Applied Fees</span>
-                    <span class="font-bold text-purple-600">₹{{ totals.current_fees|floatformat:0|default:"785200" }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">Discounts Given</span>
-                    <span class="font-bold text-blue-600">₹{{ totals.current_discount|floatformat:0|default:"30" }}</span>
-                </div>
-                <div class="flex justify-between items-center border-t pt-2">
-                    <span class="text-gray-800 font-semibold">Net Outstanding</span>
-                    <span class="font-bold text-red-600">₹{{ totals.final_due|floatformat:0|default:"707750" }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Search and Filters Card -->
     <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-200">
         <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-xl mb-6">
@@ -336,6 +197,204 @@
         </div>
     </div>
 
+
+
+    <!-- Page Size Control -->
+    <div class="bg-white rounded-xl shadow-lg p-4 mb-6 border border-gray-200">
+        <form method="get" class="flex items-center justify-between">
+            <!-- Preserve all existing filters -->
+            <input type="hidden" name="search" value="{{ request.GET.search }}">
+            <input type="hidden" name="class" value="{{ request.GET.class }}">
+            <input type="hidden" name="status" value="{{ request.GET.status }}">
+
+            <div class="flex items-center gap-4">
+                <span class="text-gray-700 font-semibold flex items-center">
+                    <i class="fas fa-list mr-2 text-blue-500"></i>{% trans "Show" %}
+                </span>
+                <select name="page_size" onchange="this.form.submit()" class="border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-blue-400 transition-colors">
+                    <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                </select>
+                <span class="text-gray-700 font-semibold">{% trans "per page" %}</span>
+            </div>
+            <div class="text-sm text-gray-600">
+                {% if page_obj %}
+                    <i class="fas fa-chart-bar mr-1"></i>{% trans "Showing" %} {{ page_obj.start_index }}-{{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }} {% trans "students" %}
+                    {% if request.GET.class %}
+                        <span class="ml-2 text-blue-600 font-medium">
+                            ({% trans "Filtered by class" %})
+                        </span>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Enhanced Summary Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Students Card -->
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium uppercase tracking-wide">Total Students</p>
+                    <p class="text-3xl font-bold mt-2">{{ page_obj.paginator.count|default:0 }}</p>
+                    <p class="text-blue-200 text-xs mt-1">Active Enrollments</p>
+                </div>
+                <div class="w-14 h-14 bg-blue-400 bg-opacity-50 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Fees Card -->
+        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-indigo-100 text-sm font-medium uppercase tracking-wide">Total Annual Fees</p>
+                    <p class="text-3xl font-bold mt-2">₹{{ totals.current_fees|floatformat:0 }}</p>
+                    <p class="text-indigo-200 text-xs mt-1">Expected Revenue</p>
+                </div>
+                <div class="w-14 h-14 bg-indigo-400 bg-opacity-50 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-rupee-sign text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Amount Collected Card -->
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium uppercase tracking-wide">Amount Collected</p>
+                    <p class="text-3xl font-bold mt-2">₹{{ totals.current_paid|floatformat:0 }}</p>
+                    <div class="flex items-center mt-1">
+                        <div class="w-16 bg-green-300 rounded-full h-1 mr-2">
+                            <div class="bg-white h-1 rounded-full" style="width: {% widthratio totals.current_paid totals.current_fees 100 %}%"></div>
+                        </div>
+                        <span class="text-green-200 text-xs">{% widthratio totals.current_paid totals.current_fees 100 %}%</span>
+                    </div>
+                </div>
+                <div class="w-14 h-14 bg-green-400 bg-opacity-50 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Outstanding Due Card -->
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm font-medium uppercase tracking-wide">Outstanding Due</p>
+                    <p class="text-3xl font-bold mt-2">₹{{ totals.final_due|floatformat:0 }}</p>
+                    <p class="text-red-200 text-xs mt-1">
+                        {% if totals.final_due > 0 %}
+                            Requires Follow-up
+                        {% else %}
+                            All Cleared!
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-red-400 bg-opacity-50 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Financial Insights -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Collection Efficiency -->
+        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-bold text-gray-800">Collection Efficiency</h4>
+                <i class="fas fa-chart-line text-2xl text-blue-500"></i>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Collection Rate</span>
+                    <span class="font-bold text-lg text-blue-600">{% widthratio totals.current_paid totals.current_fees 100 %}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-1000" style="width: {% widthratio totals.current_paid totals.current_fees 100 %}%"></div>
+                </div>
+                <div class="text-xs text-gray-500">
+                    {% if totals.current_paid and totals.current_fees %}
+                        ₹{{ totals.current_paid|floatformat:0 }} of ₹{{ totals.current_fees|floatformat:0 }} collected
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Status Distribution -->
+        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-bold text-gray-800">Payment Status</h4>
+                <i class="fas fa-chart-pie text-2xl text-green-500"></i>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">Fully Paid</span>
+                    </div>
+                    <span class="font-bold text-green-600">{{ payment_status_counts.fully_paid }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">Partial Payment</span>
+                    </div>
+                    <span class="font-bold text-yellow-600">{{ payment_status_counts.partial_paid }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">Outstanding</span>
+                    </div>
+                    <span class="font-bold text-red-600">{{ payment_status_counts.outstanding }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Financial Breakdown -->
+        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-bold text-gray-800">Financial Breakdown</h4>
+                <i class="fas fa-calculator text-2xl text-purple-500"></i>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Applied Fees</span>
+                    <span class="font-bold text-purple-600">₹{{ totals.current_fees|floatformat:0 }}</span>
+                </div>
+                {% if totals.current_discount %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Discounts Given</span>
+                    <span class="font-bold text-blue-600">₹{{ totals.current_discount|floatformat:0 }}</span>
+                </div>
+                {% endif %}
+                {% if totals.cf_due %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Carried Forward</span>
+                    <span class="font-bold text-orange-600">₹{{ totals.cf_due|floatformat:0 }}</span>
+                </div>
+                {% endif %}
+                {% if totals.fine_unpaid %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Pending Fines</span>
+                    <span class="font-bold text-red-600">₹{{ totals.fine_unpaid|floatformat:0 }}</span>
+                </div>
+                {% endif %}
+                <div class="pt-3 border-t border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-700">Net Outstanding</span>
+                        <span class="font-bold text-lg text-red-600">₹{{ totals.final_due|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Enhanced Fee Analytics Dashboard -->
     <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
         <!-- Main Report Table -->
@@ -364,6 +423,9 @@
                                     <i class="fas fa-check-circle mr-1 text-green-500"></i>Paid
                                 </th>
                                 <th class="px-4 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    <i class="fas fa-gavel mr-1 text-purple-500"></i>Fines
+                                </th>
+                                <th class="px-4 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                                     <i class="fas fa-exclamation-triangle mr-1 text-red-500"></i>Due
                                 </th>
                                 <th class="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -376,7 +438,8 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100">
                             {% for row in report_data %}
-                            <tr class="hover:bg-blue-50 transition-all duration-200">
+                            <tr class="hover:bg-blue-50 transition-all duration-200 {% if row.final_due > 10000 %}border-l-4 border-red-500{% elif row.final_due > 5000 %}border-l-4 border-orange-500{% elif row.final_due > 0 %}border-l-4 border-yellow-500{% else %}border-l-4 border-green-500{% endif %}">
+                                <!-- Student Info -->
                                 <td class="px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
@@ -384,37 +447,75 @@
                                         </div>
                                         <div>
                                             <div class="text-sm font-bold text-gray-900">{{ row.name }}</div>
-                                            <div class="text-xs text-gray-500">({{ row.admission_number }})</div>
+                                            <div class="text-xs text-gray-500">
+                                                {% if row.admission_number %}
+                                                    ({{ row.admission_number }})
+                                                {% else %}
+                                                    (ID: {{ row.student_id }})
+                                                {% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
+                                
+                                <!-- Class -->
                                 <td class="px-4 py-4 text-center">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         {{ row.class_name }}
                                     </span>
                                 </td>
+                                
+                                <!-- Total Fees -->
                                 <td class="px-4 py-4 text-right">
                                     <div class="text-sm font-bold text-gray-900">₹{{ row.current_fees|floatformat:0 }}</div>
+                                    {% if row.cf_due %}<div class="text-xs text-gray-500">+₹{{ row.cf_due|floatformat:0 }} CF</div>{% endif %}
                                 </td>
+                                
+                                <!-- Paid Amount -->
                                 <td class="px-4 py-4 text-right">
                                     <div class="text-sm font-bold text-green-600">₹{{ row.current_paid|floatformat:0 }}</div>
+                                    {% if row.current_discount %}<div class="text-xs text-blue-500">-₹{{ row.current_discount|floatformat:0 }} disc</div>{% endif %}
                                 </td>
+                                
+                                <!-- Fine Amounts -->
+                                <td class="px-4 py-4 text-right">
+                                    {% if row.fine_paid or row.fine_unpaid %}
+                                        {% if row.fine_paid %}<div class="text-sm font-bold text-green-600">₹{{ row.fine_paid|floatformat:0 }} paid</div>{% endif %}
+                                        {% if row.fine_unpaid %}<div class="text-sm font-bold text-red-600">₹{{ row.fine_unpaid|floatformat:0 }} due</div>{% endif %}
+                                    {% else %}
+                                        <div class="text-sm text-gray-400">₹0</div>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Due Amount -->
                                 <td class="px-4 py-4 text-right">
                                     <div class="text-sm font-bold {% if row.final_due > 0 %}text-red-600{% else %}text-green-600{% endif %}">
                                         ₹{{ row.final_due|floatformat:0 }}
                                     </div>
                                 </td>
+                                
+                                <!-- Payment Status -->
                                 <td class="px-4 py-4 text-center">
                                     {% if row.final_due == 0 %}
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                             <i class="fas fa-check-circle mr-1"></i>Paid
                                         </span>
-                                    {% else %}
+                                    {% elif row.final_due > 10000 %}
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                            <i class="fas fa-exclamation-triangle mr-1"></i>Due
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>High Due
+                                        </span>
+                                    {% elif row.final_due > 5000 %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                            <i class="fas fa-clock mr-1"></i>Medium Due
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-hourglass-half mr-1"></i>Low Due
                                         </span>
                                     {% endif %}
                                 </td>
+                                
+                                <!-- Actions -->
                                 <td class="px-4 py-4 text-center">
                                     <div class="flex justify-center space-x-2">
                                         <a href="{% url 'student_fees:student_fee_preview' row.student_id %}" 
@@ -422,12 +523,18 @@
                                            title="View Details">
                                             <i class="fas fa-eye text-sm"></i>
                                         </a>
+                                        {% if row.final_due > 0 %}
+                                        <button class="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-lg transition-all duration-300 transform hover:scale-110 shadow-md" 
+                                                title="Send Reminder" onclick="sendReminder({{ row.student_id }})">
+                                            <i class="fas fa-bell text-sm"></i>
+                                        </button>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center">
+                                <td colspan="8" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center">
                                         <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
                                         <h3 class="text-xl font-bold text-gray-500 mb-2">{% trans "No Records Found" %}</h3>
@@ -476,19 +583,14 @@
                             <span class="text-green-700 flex items-center">
                                 <i class="fas fa-receipt mr-1"></i>{{ daily_summary.today_count|default:0 }} payments
                             </span>
-                            {% if daily_summary.daily_growth != 0 %}
-                            <span class="text-green-600 flex items-center">
-                                <i class="fas fa-{% if daily_summary.daily_growth > 0 %}arrow-up{% else %}arrow-down{% endif %} mr-1"></i>
-                                {{ daily_summary.daily_growth|floatformat:1 }}% vs yesterday
+                            <span class="text-green-600 flex items-center" x-show="mlInsights.target_percentage">
+                                <i class="fas fa-bullseye mr-1"></i><span x-text="mlInsights.target_percentage + '% target'">85% target</span>
                             </span>
-                            {% endif %}
                         </div>
-                        {% if daily_summary.risk_alerts %}
-                        <div class="flex items-center text-xs text-orange-600">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>
-                            {{ daily_summary.risk_alerts|length }} alert{{ daily_summary.risk_alerts|length|pluralize }}
+                        <div class="flex items-center text-xs text-green-600" x-show="mlInsights.vs_yesterday">
+                            <i class="fas fa-arrow-up mr-1"></i>
+                            <span x-text="'+' + mlInsights.vs_yesterday + '% vs yesterday'">+15% vs yesterday</span>
                         </div>
-                        {% endif %}
                         <!-- Progress Bar -->
                         <div class="w-full bg-green-200 rounded-full h-2 mt-2">
                             <div class="bg-green-600 h-2 rounded-full transition-all duration-1000" 
@@ -504,27 +606,25 @@
                         <h5 class="text-sm font-bold text-blue-800">ML Predictions</h5>
                     </div>
                     <div class="space-y-2 text-sm">
-                        {% if daily_summary.tomorrow_prediction %}
-                        <div class="flex justify-between items-center">
-                            <span class="text-blue-700">Tomorrow forecast:</span>
-                            <span class="font-bold text-blue-800">₹{{ daily_summary.tomorrow_prediction|floatformat:0 }}</span>
+                        <div class="flex justify-between items-center" x-show="mlInsights.eod_forecast">
+                            <span class="text-blue-700">Expected by EOD:</span>
+                            <span class="font-bold text-blue-800" x-text="'₹' + (mlInsights.eod_forecast || '8,500')">₹8,500</span>
                         </div>
-                        {% endif %}
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center" x-show="mlInsights.peak_hours">
                             <span class="text-blue-700 flex items-center">
-                                <i class="fas fa-tachometer-alt mr-1"></i>Payment rate:
+                                <i class="fas fa-clock mr-1"></i>Peak hours:
                             </span>
-                            <span class="font-bold text-blue-800">{{ daily_summary.payment_velocity|floatformat:1 }}/hr</span>
+                            <span class="font-bold text-blue-800" x-text="mlInsights.peak_hours || '2-4 PM'">2-4 PM</span>
                         </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center" x-show="mlInsights.optimal_channel">
                             <span class="text-blue-700 flex items-center">
-                                <i class="fas fa-chart-line mr-1"></i>Trend:
+                                <i class="fas fa-mobile-alt mr-1"></i>Best channel:
                             </span>
-                            <span class="font-bold text-blue-800">{{ daily_summary.trend_direction|capfirst }}</span>
+                            <span class="font-bold text-blue-800" x-text="mlInsights.optimal_channel || 'Online'">Online</span>
                         </div>
-                        <div class="text-xs text-blue-600 mt-2">
+                        <div class="text-xs text-blue-600 mt-2" x-show="mlInsights.confidence">
                             <i class="fas fa-check-circle mr-1"></i>
-                            Status: {{ daily_summary.performance_status|capfirst|default:"Monitoring" }}
+                            <span x-text="'Confidence: ' + (mlInsights.confidence || '87') + '%'">Confidence: 87%</span>
                         </div>
                     </div>
                 </div>
@@ -536,35 +636,30 @@
                         <h5 class="text-sm font-bold text-orange-800">Smart Alerts</h5>
                     </div>
                     <div class="space-y-2">
-                        {% for alert in daily_summary.risk_alerts %}
                         <div class="flex justify-between items-center cursor-pointer hover:bg-white hover:bg-opacity-50 p-2 rounded" 
-                             onclick="showAlert('{{ alert|escapejs }}')">
+                             x-show="mlInsights.high_risk_count" @click="showRiskStudents('high')">
                             <span class="text-red-600 flex items-center text-sm">
                                 <div class="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                                {{ alert|truncatechars:30 }}
+                                <span x-text="(mlInsights.high_risk_count || 5) + ' high-risk students'">5 high-risk students</span>
                             </span>
                             <i class="fas fa-chevron-right text-red-400"></i>
                         </div>
-                        {% empty %}
-                        {% if daily_summary.today_amount == 0 %}
                         <div class="flex justify-between items-center cursor-pointer hover:bg-white hover:bg-opacity-50 p-2 rounded" 
-                             onclick="showRiskStudents('outstanding')">
-                            <span class="text-orange-600 flex items-center text-sm">
-                                <div class="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-                                No payments today
+                             x-show="mlInsights.medium_risk_count" @click="showRiskStudents('medium')">
+                            <span class="text-yellow-600 flex items-center text-sm">
+                                <div class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                                <span x-text="(mlInsights.medium_risk_count || 3) + ' delays expected'">3 delays expected</span>
                             </span>
-                            <i class="fas fa-chevron-right text-orange-400"></i>
+                            <i class="fas fa-chevron-right text-yellow-400"></i>
                         </div>
-                        {% else %}
-                        <div class="flex justify-between items-center p-2">
+                        <div class="flex justify-between items-center cursor-pointer hover:bg-white hover:bg-opacity-50 p-2 rounded" 
+                             x-show="mlInsights.early_payments" @click="showRiskStudents('early')">
                             <span class="text-green-600 flex items-center text-sm">
                                 <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                All systems normal
+                                <span x-text="(mlInsights.early_payments || 2) + ' early payments coming'">2 early payments coming</span>
                             </span>
-                            <i class="fas fa-check text-green-400"></i>
+                            <i class="fas fa-chevron-right text-green-400"></i>
                         </div>
-                        {% endif %}
-                        {% endfor %}
                     </div>
                 </div>
                 
@@ -601,27 +696,27 @@
                     <div class="space-y-3">
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-gray-700">Current Rate:</span>
-                            <span class="font-bold text-gray-800">{{ daily_summary.payment_velocity|floatformat:1 }}/hr</span>
+                            <span class="font-bold text-gray-800" x-text="(mlInsights.payment_rate || '2.3') + '/hr'">2.3/hr</span>
                         </div>
                         <!-- Efficiency Bar -->
                         <div class="space-y-1">
                             <div class="flex justify-between text-xs">
-                                <span class="text-gray-600">Weekly Growth</span>
-                                <span class="text-gray-700">{{ daily_summary.weekly_growth|floatformat:1 }}%</span>
+                                <span class="text-gray-600">Efficiency</span>
+                                <span class="text-gray-700" x-text="(mlInsights.efficiency || 80) + '%'">80%</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-2">
                                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000" 
-                                     style="width: {{ daily_summary.weekly_growth|add:50|floatformat:0 }}%"></div>
+                                     :style="'width: ' + (mlInsights.efficiency || 80) + '%'"></div>
                             </div>
                         </div>
                         <div class="text-xs text-gray-600 space-y-1">
                             <div class="flex items-center">
-                                <i class="fas fa-calendar mr-1"></i>
-                                <span>This week: ₹{{ daily_summary.week_amount|floatformat:0 }}</span>
+                                <i class="fas fa-clock mr-1"></i>
+                                <span x-text="'Next payment: ~' + (mlInsights.next_payment || '12') + ' mins'">Next payment: ~12 mins</span>
                             </div>
                             <div class="flex items-center">
                                 <i class="fas fa-chart-line mr-1"></i>
-                                <span>Trend: {{ daily_summary.trend_direction|capfirst }}</span>
+                                <span x-text="'Trend: ' + (mlInsights.trend || 'Accelerating')">Trend: Accelerating</span>
                             </div>
                         </div>
                     </div>
@@ -646,161 +741,111 @@
                         </div>
                     </div>
                 </div>
+                            <span class="font-bold text-xs text-purple-600">₹{{ payment_methods.cheque|floatformat:0 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+
             </div>
         </div>
     </div>
 
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white rounded-xl shadow-lg p-6 mt-8 border border-gray-200">
+        <div class="flex justify-between items-center">
+            <div class="text-sm text-gray-600">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+            <div class="flex space-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.class %}&class={{ request.GET.class }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" 
+                       class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        First
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.class %}&class={{ request.GET.class }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" 
+                       class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        Previous
+                    </a>
+                {% endif %}
+                
+                <span class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg">
+                    {{ page_obj.number }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.class %}&class={{ request.GET.class }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" 
+                       class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        Next
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.class %}&class={{ request.GET.class }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" 
+                       class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        Last
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
 <script>
-// ML-Enhanced Today Payment Summary Component
-function todayPaymentSummary() {
-    return {
-        mlInsights: {
-            status: '{{ daily_summary.performance_status|default:"loading" }}',
-            target_percentage: Math.min({{ daily_summary.daily_growth|default:0|add:100 }}, 100),
-            vs_yesterday: {{ daily_summary.daily_growth|default:0 }},
-            eod_forecast: '{{ daily_summary.tomorrow_prediction|default:"0"|floatformat:0 }}',
-            peak_hours: '{{ daily_summary.peak_hours|default:"2-4 PM" }}',
-            optimal_channel: 'Online',
-            confidence: {{ daily_summary.confidence|default:75 }},
-            high_risk_count: {{ daily_summary.risk_alerts|length|default:0 }},
-            medium_risk_count: {{ daily_summary.recommendations|length|default:0 }},
-            early_payments: Math.max(0, {{ daily_summary.today_count|default:0 }} - 2),
-            payment_rate: '{{ daily_summary.payment_velocity|default:"0.0" }}',
-            efficiency: Math.min({{ daily_summary.weekly_growth|default:0|add:80 }}, 100),
-            next_payment: '{{ daily_summary.next_payment_mins|default:"15" }}',
-            trend: '{{ daily_summary.trend_direction|default:"stable"|capfirst }}',
-            best_time: 'Next 30 mins',
-            predictions: {{ daily_summary.tomorrow_prediction|yesno:"true,false" }},
-            alerts: {{ daily_summary.risk_alerts|yesno:"true,false" }},
-            recommendations: {{ daily_summary.recommendations|yesno:"true,false" }},
-            velocity: true
-        },
-        lastUpdated: '2m ago',
-        defaultRecommendations: [
-            {% for rec in daily_summary.recommendations %}
-            {
-                id: {{ forloop.counter }},
-                icon: 'fas fa-{{ rec.icon|default:"bell" }}',
-                message: '{{ rec|truncatechars:40 }}',
-                action: 'recommendation_{{ forloop.counter }}',
-                priority: 'high'
-            }{% if not forloop.last %},{% endif %}
-            {% empty %}
-            {
-                id: 1,
-                icon: 'fas fa-bell',
-                message: {% if daily_summary.today_amount == 0 %}'Send payment reminders'{% else %}'Monitor payment trends'{% endif %},
-                action: 'send_reminders',
-                priority: 'high'
-            },
-            {
-                id: 2,
-                icon: 'fas fa-chart-line',
-                message: {% if daily_summary.weekly_growth > 0 %}'Maintain growth momentum'{% else %}'Boost collection efforts'{% endif %},
-                action: 'boost_collections',
-                priority: 'medium'
-            }
-            {% endfor %}
-        ],
-        
-        init() {
-            this.loadMLInsights();
-            setInterval(() => {
-                this.loadMLInsights();
-                this.updateLastUpdated();
-            }, 300000);
-        },
-        
-        async loadMLInsights() {
-            try {
-                const response = await fetch('/api/ml-insights/today-payment-summary/');
-                if (response.ok) {
-                    const data = await response.json();
-                    this.mlInsights = { ...this.mlInsights, ...data };
-                } else {
-                    this.mlInsights.status = 'ml_unavailable';
-                }
-            } catch (error) {
-                console.log('ML insights unavailable, using defaults');
-                this.mlInsights.status = 'ml_unavailable';
-            }
-        },
-        
-        updateLastUpdated() {
-            this.lastUpdated = 'Just now';
-            setTimeout(() => {
-                this.lastUpdated = '1m ago';
-            }, 60000);
-        },
-        
-        showRiskStudents(riskLevel) {
-            const statusMap = {
-                'high': 'outstanding',
-                'medium': 'partial_paid',
-                'early': 'fully_paid'
-            };
-            
-            const url = new URL(window.location);
-            url.searchParams.set('status', statusMap[riskLevel]);
-            window.location.href = url.toString();
-        },
-        
-        executeRecommendation(recommendation) {
-            switch(recommendation.action) {
-                case 'send_reminders':
-                case 'recommendation_1':
-                    window.location.href = '?status=outstanding';
-                    break;
-                case 'boost_collections':
-                case 'recommendation_2':
-                    alert('Filtering high-value outstanding students...');
-                    window.location.href = '?status=outstanding';
-                    break;
-                default:
-                    console.log('Executing:', recommendation.message);
-            }
-        }
-    }
-}
-
-// Global functions
-function showAlert(message) {
-    alert('Alert: ' + message);
-}
-
-function showRiskStudents(status) {
-    const url = new URL(window.location);
-    url.searchParams.set('status', status);
-    window.location.href = url.toString();
-    }
-}
-
-// Fee reminder functionality
+// Send fee reminder function
 function sendReminder(studentId) {
-    if (confirm('Send fee reminder to this student?')) {
-        fetch('/reports/send-fee-reminder/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify({ student_id: studentId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Failed to send reminder. Please try again.');
-        });
+    if (!studentId) {
+        alert('Invalid student ID');
+        return;
     }
+    
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    // Send AJAX request to actual endpoint
+    fetch('{% url "reports:send_fee_reminder" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            student_id: studentId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        if (data.success) {
+            // Show success message
+            alert('✅ ' + data.message);
+            // Optional: Change button color to indicate sent
+            button.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+            button.classList.add('bg-green-500', 'hover:bg-green-600');
+            button.innerHTML = '<i class="fas fa-check text-sm"></i>';
+            button.title = 'Reminder Sent';
+        } else {
+            // Show error message
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        console.error('Error:', error);
+        alert('❌ Failed to send reminder. Please try again.');
+    });
 }
-</script>
 
+
+</script>
 {% endblock %}

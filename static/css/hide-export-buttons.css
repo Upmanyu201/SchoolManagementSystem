@@ -61,3 +61,15 @@ body.hide-exports button[title*="Excel"],
 body.hide-exports button[title*="PDF"] {
     display: none !important;
 }
+
+/* Explicitly show export buttons on backup and reports pages */
+.backup-template .export-buttons,
+.backup-template [data-export],
+.backup-template button[onclick*="exportData"],
+.backup-template a[href*="export"],
+.reports-template .export-buttons,
+.reports-template [data-export],
+.reports-template button[onclick*="exportData"],
+.reports-template a[href*="export"] {
+    display: block !important;
+}

@@ -29,12 +29,7 @@ class ConsolidatedFeeManager {
     }
 
     bindEvents() {
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('view-fees-btn') || e.target.closest('.view-fees-btn')) {
-                this.handleViewFeesClick(e);
-            }
-        });
-
+        // Remove global click handler to prevent conflicts
         document.addEventListener('change', (e) => {
             if (e.target.classList.contains('discount-toggle')) {
                 this.handleDiscountToggle(e);
@@ -64,20 +59,66 @@ class ConsolidatedFeeManager {
             button = document.querySelector(`[data-student-id="${studentId}"]`) || 
                     document.querySelector(`[data-admission-number="${admissionNumber}"]`);
         }
+        
         console.log('🔍 [FEES JS] handleViewFeesClick called', {
             studentId,
             admissionNumber,
-            buttonText
+            buttonText,
+            buttonElement: button,
+            clickedElement: e?.target
         });
         
         if (!studentId || !admissionNumber) {
+            console.error('❌ [FEES JS] Missing student data', { studentId, admissionNumber });
             this.showMessage('Missing student data', 'error');
             return;
         }
 
-        const container = document.getElementById('fees-container-' + admissionNumber);
+        // CRITICAL FIX: Always find container within the clicked button's student card
+        const studentCard = button.closest('.student-card');
+        let container = null;
+        
+        if (studentCard) {
+            // Find container within this specific student card
+            container = studentCard.querySelector(`#fees-container-${admissionNumber}`);
+            
+            // Fallback: any container within this card
+            if (!container) {
+                container = studentCard.querySelector('[id^="fees-container-"]');
+            }
+        }
+        
+        // Last resort: global lookup
         if (!container) {
-            this.showMessage('Fees container not found', 'error');
+            container = document.getElementById('fees-container-' + admissionNumber);
+        }
+        
+        console.log('🔍 [FEES JS] Container lookup', {
+            admissionNumber: admissionNumber,
+            expectedId: 'fees-container-' + admissionNumber,
+            containerFound: !!container,
+            containerId: container?.id,
+            allContainers: Array.from(document.querySelectorAll('[id^="fees-container-"]')).map(c => c.id)
+        });
+        
+        if (!container) {
+            console.error('❌ [FEES JS] Container not found', {
+                expectedId: 'fees-container-' + admissionNumber,
+                availableContainers: Array.from(document.querySelectorAll('[id^="fees-container-"]')).map(c => c.id)
+            });
+            this.showMessage('Fees container not found for student ' + admissionNumber, 'error');
+            return;
+        }
+        
+        // Verify container belongs to correct student
+        const containerAdmissionNumber = container.id.replace('fees-container-', '');
+        if (containerAdmissionNumber !== admissionNumber) {
+            console.error('❌ [FEES JS] Container mismatch!', {
+                buttonAdmission: admissionNumber,
+                containerAdmission: containerAdmissionNumber,
+                containerId: container.id
+            });
+            this.showMessage('Container mismatch detected', 'error');
             return;
         }
 
@@ -86,6 +127,13 @@ class ConsolidatedFeeManager {
             console.log('🚫 [FEES JS] Button processing, ignoring click');
             return;
         }
+        
+        console.log('🔍 [FEES JS] Final container validation', {
+            studentId: studentId,
+            admissionNumber: admissionNumber,
+            containerId: container.id,
+            containerMatch: container.id === 'fees-container-' + admissionNumber
+        });
         
         // Use data attribute as single source of truth for state
         const isExpanded = container.dataset.expanded === 'true';
@@ -106,12 +154,12 @@ class ConsolidatedFeeManager {
         }
     }
 
+    async loadStudentFeesDirectly(studentId, admissionNumber, button, container) {
+        return this.loadStudentFees(studentId, admissionNumber, button, container);
+    }
+
     async loadStudentFees(studentId, admissionNumber, button, container) {
-        console.log('🔍 [FEES JS] loadStudentFees called', {
-            studentId,
-            admissionNumber,
-            timestamp: new Date().toISOString()
-        });
+        console.log('🔍 [AJAX] Starting request for:', admissionNumber, 'Container:', container.id);
         
         // Prevent duplicate AJAX calls
         const cacheKey = `${admissionNumber}_${Date.now()}`;
@@ -137,12 +185,15 @@ class ConsolidatedFeeManager {
             const isDiscountEnabled = discountToggle ? discountToggle.checked : false;
             
             console.log('🔍 [FEES JS] Request parameters', {
+                studentId,
+                admissionNumber,
                 isDiscountEnabled,
+                containerId: container.id,
                 url: `/student_fees/ajax/get-student-fees/?admission_number=${encodeURIComponent(admissionNumber)}&discount_enabled=${isDiscountEnabled}`
             });
 
             // Fetch the fees_rows.html template with student data
-            console.log('🔍 [FEES JS] Making AJAX request to get student fees');
+            console.log('🚀 [AJAX] Requesting:', admissionNumber);
             const response = await fetch(`/student_fees/ajax/get-student-fees/?admission_number=${encodeURIComponent(admissionNumber)}&discount_enabled=${isDiscountEnabled}`, {
                 method: 'GET',
                 headers: {
@@ -172,11 +223,24 @@ class ConsolidatedFeeManager {
             });
             
             if (data.status === 'success') {
-                console.log('✅ [FEES JS] Success - inserting HTML into container');
+                // CRITICAL: Re-verify container is within correct student card
+                const studentCard = button.closest('.student-card');
+                const cardContainer = studentCard?.querySelector(`#fees-container-${admissionNumber}`);
+                
+                if (!cardContainer || cardContainer !== container) {
+                    console.error('❌ [FEES JS] CRITICAL: Container not in correct student card!', {
+                        originalContainer: container.id,
+                        cardContainer: cardContainer?.id,
+                        admissionNumber: admissionNumber
+                    });
+                    return;
+                }
+                
+                console.log('✅ [AJAX] Success for:', admissionNumber, 'HTML length:', data.html.length);
                 container.innerHTML = data.html;
                 this.initializeFeesForm(admissionNumber);
                 this.updateButtonState(button, 'close');
-                console.log('✅ [FEES JS] Fee form initialized successfully');
+                console.log('✅ [FEES JS] Fee form initialized successfully for', admissionNumber);
                 
                 // Ensure container is visible and expanded
                 container.classList.remove('hidden');
@@ -418,9 +482,10 @@ class ConsolidatedFeeManager {
         const form = document.getElementById('depositForm-' + admissionNumber);
         if (!form) {
             console.error('❌ [FEES JS] Form not found:', 'depositForm-' + admissionNumber);
+            console.log('🔍 [FEES JS] Available forms:', Array.from(document.querySelectorAll('form[id^="depositForm-"]')).map(f => f.id));
             return;
         }
-        console.log('✅ [FEES JS] Form found, initializing...');
+        console.log('✅ [FEES JS] Form found, initializing for admission:', admissionNumber, 'Form ID:', form.id);
 
         // Set current date and time
         const now = new Date();
@@ -537,8 +602,9 @@ class ConsolidatedFeeManager {
                 paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
                 paymentBtn.disabled = true;
                 
-                // Show confirmation modal or submit directly
-                const modal = document.getElementById('paymentModal');
+                // Show confirmation modal or submit directly - FIXED: Use student-specific modal
+                const admissionNumber = form.id.replace('depositForm-', '');
+                const modal = document.getElementById('paymentModal-' + admissionNumber) || document.getElementById('paymentModal');
                 if (modal) {
                     this.showPaymentModal(form, modal);
                     // Reset button state after modal shows
@@ -817,8 +883,43 @@ class ConsolidatedFeeManager {
     showPaymentModal(form, modal) {
         console.log('🔍 [FEES JS] Showing payment modal');
         
+        // CRITICAL FIX: Verify modal belongs to correct student
+        const formAdmissionNumber = form.id.replace('depositForm-', '');
+        const modalId = modal.id;
+        const expectedModalId = 'paymentModal-' + formAdmissionNumber;
+        
+        if (modalId !== expectedModalId && modalId !== 'paymentModal') {
+            console.error('❌ [FEES JS] Modal mismatch!', {
+                formAdmission: formAdmissionNumber,
+                modalId: modalId,
+                expectedModalId: expectedModalId
+            });
+            return;
+        }
+        
+        // CRITICAL FIX: Clear modal data first to prevent previous student data
+        this.clearModalData(modal);
+        
         const selectedFees = form.querySelectorAll('.fee-checkbox:checked');
         const paymentMethod = form.querySelector('#payment_mode').value;
+        
+        // Get current student info from form
+        const studentId = form.querySelector('input[name="student_id"]').value;
+        const formId = form.id;
+        const admissionNumber = formId.replace('depositForm-', '');
+        
+        console.log('🔍 [FEES JS] Modal for student:', { studentId, admissionNumber, formId });
+        
+        // CRITICAL FIX: Update modal student info dynamically
+        const studentCard = form.closest('.student-card');
+        if (studentCard) {
+            const studentName = studentCard.querySelector('h3')?.textContent?.trim() || 'Unknown Student';
+            const modalStudentName = modal.querySelector('.font-semibold');
+            const modalAdmissionNo = modal.querySelectorAll('.font-semibold')[1];
+            
+            if (modalStudentName) modalStudentName.textContent = studentName;
+            if (modalAdmissionNo) modalAdmissionNo.textContent = admissionNumber;
+        }
         
         // Update modal content
         const modalPaymentMethod = modal.querySelector('#modalPaymentMethod');
@@ -917,6 +1018,22 @@ class ConsolidatedFeeManager {
         }
     }
 
+    clearModalData(modal) {
+        // Clear all modal content to prevent cross-student contamination
+        const feesList = modal.querySelector('#modalFeesList');
+        if (feesList) feesList.innerHTML = '';
+        
+        const modalTotal = modal.querySelector('#modalTotalAmount');
+        const modalDiscount = modal.querySelector('#modalTotalDiscount');
+        const modalFinal = modal.querySelector('#modalFinalAmount');
+        
+        if (modalTotal) modalTotal.textContent = '₹ 0.00';
+        if (modalDiscount) modalDiscount.textContent = '₹ 0.00';
+        if (modalFinal) modalFinal.textContent = '₹ 0.00';
+        
+        console.log('✅ [FEES JS] Modal data cleared');
+    }
+
     showMessage(message, type = 'info') {
         document.querySelectorAll('.alert-message').forEach(el => el.remove());
 
@@ -954,6 +1071,19 @@ class ConsolidatedFeeManager {
 
 // Global function for backward compatibility
 function loadStudentFees(button) {
+    const studentId = button.getAttribute('data-student-id');
+    const admissionNumber = button.getAttribute('data-admission-number');
+    
+    console.log('🔍 [TEMPLATE] loadStudentFees called', {
+        button: button,
+        studentId: studentId,
+        admissionNumber: admissionNumber,
+        buttonText: button.textContent.trim(),
+        managerAvailable: !!window.consolidatedFeeManager,
+        containerId: 'fees-container-' + admissionNumber,
+        containerExists: !!document.getElementById('fees-container-' + admissionNumber)
+    });
+    
     if (window.consolidatedFeeManager) {
         const event = { target: button };
         window.consolidatedFeeManager.handleViewFeesClick(event);

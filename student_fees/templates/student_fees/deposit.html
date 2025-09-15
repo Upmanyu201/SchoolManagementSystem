@@ -180,7 +180,7 @@
                                 class="view-fees-btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
                                 data-student-id="{{ student.id }}"
                                 data-admission-number="{{ student.admission_number }}"
-                                onclick="loadStudentFees(this)">
+onclick="event.preventDefault(); event.stopPropagation(); console.log('🔍 [CLICK] {{ student.admission_number }}'); loadStudentFees(this)">
                             <i class="fas fa-money-check-alt mr-2"></i>{% trans "Process Payment" %}
                         </button>
                         <a href="{% url 'student_fees:student_fee_preview' student.id %}" 
@@ -294,29 +294,38 @@
 <script>
 // Global function for loadStudentFees
 function loadStudentFees(button) {
-    console.log('🔍 [TEMPLATE] loadStudentFees called', {
-        button: button,
-        studentId: button.getAttribute('data-student-id'),
-        admissionNumber: button.getAttribute('data-admission-number'),
-        managerAvailable: !!window.consolidatedFeeManager
-    });
+    const admissionNumber = button.getAttribute('data-admission-number');
+    
+    // Prevent duplicate calls
+    if (button.dataset.loading === 'true') {
+        console.log('🚫 [BLOCKED] Already loading:', admissionNumber);
+        return;
+    }
+    
+    button.dataset.loading = 'true';
+    console.log('🚀 [START] Loading fees for:', admissionNumber);
+    
+    const studentCard = button.closest('.student-card');
+    const targetContainer = studentCard.querySelector('#fees-container-' + admissionNumber);
+    
+    if (!targetContainer) {
+        console.error('❌ [ERROR] Container not found for:', admissionNumber);
+        button.dataset.loading = 'false';
+        return;
+    }
     
     if (window.consolidatedFeeManager) {
-        console.log('✅ [TEMPLATE] ConsolidatedFeeManager available, calling handleViewFeesClick');
-        const event = { target: button };
-        window.consolidatedFeeManager.handleViewFeesClick(event);
+        window.consolidatedFeeManager.loadStudentFeesDirectly(
+            button.getAttribute('data-student-id'), 
+            admissionNumber, 
+            button, 
+            targetContainer
+        ).finally(() => {
+            button.dataset.loading = 'false';
+            console.log('✅ [DONE] Finished loading for:', admissionNumber);
+        });
     } else {
-        console.error('❌ [TEMPLATE] ConsolidatedFeeManager not initialized');
-        // Fallback: try to initialize and retry
-        setTimeout(() => {
-            if (window.consolidatedFeeManager) {
-                console.log('✅ [TEMPLATE] ConsolidatedFeeManager available after retry');
-                const event = { target: button };
-                window.consolidatedFeeManager.handleViewFeesClick(event);
-            } else {
-                console.error('❌ [TEMPLATE] ConsolidatedFeeManager still not available after retry');
-            }
-        }, 100);
+        button.dataset.loading = 'false';
     }
 }
 

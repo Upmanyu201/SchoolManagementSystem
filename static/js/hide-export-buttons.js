@@ -14,8 +14,16 @@ document.addEventListener('DOMContentLoaded', function() {
         '/attendance/'
     ];
     
+    // Explicitly exclude backup pages from hiding export buttons
+    const allowExportPaths = [
+        '/backup/',
+        '/reports/'
+    ];
+    
     // Check if current path matches any of the paths where exports should be hidden
-    const shouldHideExports = hideExportPaths.some(path => currentPath.includes(path));
+    // But exclude paths that should always show export buttons
+    const shouldHideExports = hideExportPaths.some(path => currentPath.includes(path)) && 
+                             !allowExportPaths.some(path => currentPath.includes(path));
     
     if (shouldHideExports) {
         // Add class to body for CSS targeting

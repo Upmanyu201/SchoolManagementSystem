@@ -578,6 +578,9 @@ def fees_report(request):
     # Get class list for dropdown
     class_list = ClassSection.objects.all().order_by('class_name', 'section_name')
     
+    # Get daily payment summary with real data
+    daily_summary = get_daily_payment_summary()
+    
     context = {
         'report_data': page_obj,
         'page_obj': page_obj,
@@ -588,7 +591,110 @@ def fees_report(request):
         'ml_insights': ml_insights,
         'filters': filters,
         'payment_status_counts': payment_status_counts,
-        'fee_service_available': FEE_SERVICE_AVAILABLE
+        'fee_service_available': FEE_SERVICE_AVAILABLE,
+        'daily_summary': daily_summary
+    }
+    
+    return render(request, 'reports/fees_report.html', context)
+
+def get_daily_payment_summary():
+    """Get comprehensive daily payment summary with ML insights"""
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    import random
+    
+    now = timezone.now()
+    today = now.date()
+    yesterday = today - timedelta(days=1)
+    week_start = today - timedelta(days=today.weekday())
+    last_week_start = week_start - timedelta(days=7)
+    month_start = today.replace(day=1)
+    last_month = (month_start - timedelta(days=1)).replace(day=1)
+    
+    # Current period data
+    today_data = FeeDeposit.objects.filter(deposit_date__date=today).aggregate(
+        amount=Sum('paid_amount'), count=Count('id')
+    )
+    week_data = FeeDeposit.objects.filter(
+        deposit_date__date__gte=week_start, deposit_date__date__lte=today
+    ).aggregate(amount=Sum('paid_amount'), count=Count('id'))
+    month_data = FeeDeposit.objects.filter(
+        deposit_date__date__gte=month_start, deposit_date__date__lte=today
+    ).aggregate(amount=Sum('paid_amount'), count=Count('id'))
+    
+    # Previous period data for growth calculation
+    yesterday_data = FeeDeposit.objects.filter(deposit_date__date=yesterday).aggregate(
+        amount=Sum('paid_amount'), count=Count('id')
+    )
+    last_week_data = FeeDeposit.objects.filter(
+        deposit_date__date__gte=last_week_start, deposit_date__date__lt=week_start
+    ).aggregate(amount=Sum('paid_amount'), count=Count('id'))
+    last_month_data = FeeDeposit.objects.filter(
+        deposit_date__date__gte=last_month, deposit_date__date__lt=month_start
+    ).aggregate(amount=Sum('paid_amount'), count=Count('id'))
+    
+    # Calculate growth percentages
+    def calc_growth(current, previous):
+        if not previous or previous == 0:
+            return 100 if current > 0 else 0
+        return round(((current - previous) / previous) * 100, 1)
+    
+    today_amount = today_data['amount'] or 0
+    week_amount = week_data['amount'] or 0
+    month_amount = month_data['amount'] or 0
+    
+    daily_growth = calc_growth(today_amount, yesterday_data['amount'] or 0)
+    weekly_growth = calc_growth(week_amount, last_week_data['amount'] or 0)
+    monthly_growth = calc_growth(month_amount, last_month_data['amount'] or 0)
+    
+    # Payment velocity (payments per hour today)
+    current_hour = now.hour
+    velocity = round((today_data['count'] or 0) / max(current_hour, 1), 1)
+    
+    # Dynamic risk alerts based on actual data
+    risk_alerts = []
+    if today_amount == 0 and current_hour > 10:
+        risk_alerts.append("⚠️ No payments received today after 10 AM")
+    if weekly_growth < -20:
+        risk_alerts.append(f"📉 Weekly collections down {abs(weekly_growth)}%")
+    if velocity < 0.5 and current_hour > 12:
+        risk_alerts.append("🐌 Low payment velocity detected")
+    
+    # Dynamic recommendations
+    recommendations = []
+    if today_amount == 0:
+        recommendations.append("Send payment reminders to outstanding students")
+    if weekly_growth > 20:
+        recommendations.append("Excellent week! Consider fee structure optimization")
+    if velocity > 2:
+        recommendations.append("High payment activity - monitor system performance")
+    
+    # Prediction for tomorrow (simple trend-based)
+    recent_days = FeeDeposit.objects.filter(
+        deposit_date__date__gte=today - timedelta(days=7)
+    ).values('deposit_date__date').annotate(
+        daily_amount=Sum('paid_amount')
+    ).order_by('deposit_date__date')
+    
+    avg_daily = sum(day['daily_amount'] or 0 for day in recent_days) / max(len(recent_days), 1)
+    tomorrow_prediction = round(avg_daily * (1 + (weekly_growth / 100)), 0)
+    
+    return {
+        'today_amount': today_amount,
+        'today_count': today_data['count'] or 0,
+        'week_amount': week_amount,
+        'week_count': week_data['count'] or 0,
+        'month_amount': month_amount,
+        'month_count': month_data['count'] or 0,
+        'daily_growth': daily_growth,
+        'weekly_growth': weekly_growth,
+        'monthly_growth': monthly_growth,
+        'payment_velocity': velocity,
+        'risk_alerts': risk_alerts,
+        'recommendations': recommendations,
+        'tomorrow_prediction': tomorrow_prediction,
+        'trend_direction': 'up' if weekly_growth > 0 else 'down',
+        'performance_status': 'excellent' if weekly_growth > 10 else 'good' if weekly_growth > 0 else 'needs_attention'
     }
     
     return render(request, 'reports/fees_report.html', context)

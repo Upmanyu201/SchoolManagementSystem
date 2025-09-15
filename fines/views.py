@@ -28,6 +28,16 @@ def add_fine(request):
                 fine.created_by = request.user
                 fine.save()
                 
+                # Handle SMS notifications if checkbox is checked
+                channels = request.POST.getlist('channels')
+                if 'sms' in channels:
+                    from .utils import send_fine_notifications
+                    notification_result = send_fine_notifications(fine, request.user)
+                    if notification_result.get('sent', 0) > 0:
+                        messages.success(request, f"SMS notifications sent to {notification_result['sent']} students.")
+                    if notification_result.get('failed', 0) > 0:
+                        messages.warning(request, f"Failed to send SMS to {notification_result['failed']} students.")
+                
                 logger.info(f"User {request.user.id} created fine: {fine.fine_type.name} - ₹{fine.amount}")
                 messages.success(request, f"Great! Fine '{fine.fine_type.name}' of ₹{fine.amount} has been applied successfully.")
                 return redirect('fines:fine_history')

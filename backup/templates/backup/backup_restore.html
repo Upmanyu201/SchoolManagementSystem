@@ -5,6 +5,8 @@
 {% block content %}
 <!-- Load enhanced backup JavaScript -->
 <script src="{% static 'js/enhanced_backup.js' %}" defer></script>
+<!-- Load Lucide icons for export system -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
     <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
@@ -28,7 +30,97 @@
                     </a>
                 </div>
             </div>
+            <!-- Data Export Section -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mb-8" x-data="exportSystem()">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i data-lucide="download" class="w-6 h-6 inline mr-2 text-green-500"></i>
+                    Data Export System
+                </h2>
+                <p class="text-gray-600 mb-6">Export module data in CSV format</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" x-show="modules.length > 0">
+                    <template x-for="module in modules" :key="module.key">
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex items-center mb-3">
+                                <i :data-lucide="module.icon" class="w-5 h-5 text-blue-500 mr-2"></i>
+                                <h3 class="font-semibold text-gray-800" x-text="module.name"></h3>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button @click="exportData(module.key, 'csv')" 
+                                        class="bg-green-500 text-white px-2 py-2 rounded text-xs hover:bg-green-600 transition-colors"
+                                        :disabled="exporting">
+                                    <i data-lucide="file-text" class="w-3 h-3 inline mr-1"></i>
+                                    CSV
+                                </button>
+                                <button @click="exportData(module.key, 'excel')" 
+                                        class="bg-blue-500 text-white px-2 py-2 rounded text-xs hover:bg-blue-600 transition-colors"
+                                        :disabled="exporting">
+                                    <i data-lucide="file-spreadsheet" class="w-3 h-3 inline mr-1"></i>
+                                    Excel
+                                </button>
+                                <button @click="exportData(module.key, 'pdf')" 
+                                        class="bg-red-500 text-white px-2 py-2 rounded text-xs hover:bg-red-600 transition-colors"
+                                        :disabled="exporting">
+                                    <i data-lucide="file-type" class="w-3 h-3 inline mr-1"></i>
+                                    PDF
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <div x-show="modules.length === 0" class="text-center py-8">
+                    <div class="text-gray-500">Loading export modules...</div>
+                </div>
+                
+                <div x-show="exporting" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Exporting data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Quick Backup Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-all duration-300 shadow-xl" onclick="createQuickBackup('full')">
+                    <div class="flex items-center justify-between mb-4">
+                        <i class="fas fa-database text-3xl"></i>
+                        <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">Complete</span>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Full System Backup</h3>
+                    <p class="text-sm opacity-90">Complete backup of all school data</p>
+                </div>
+                
+                <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-all duration-300 shadow-xl" onclick="createQuickBackup('students')">
+                    <div class="flex items-center justify-between mb-4">
+                        <i class="fas fa-user-graduate text-3xl"></i>
+                        <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">Academic</span>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Student Records</h3>
+                    <p class="text-sm opacity-90">Student profiles, enrollment & academic data</p>
+                </div>
+                
+                <div class="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-all duration-300 shadow-xl" onclick="createQuickBackup('financial')">
+                    <div class="flex items-center justify-between mb-4">
+                        <i class="fas fa-coins text-3xl"></i>
+                        <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">Finance</span>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Financial Records</h3>
+                    <p class="text-sm opacity-90">Fee payments, transactions & reports</p>
+                </div>
+                
+                <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-all duration-300 shadow-xl" onclick="createQuickBackup('teachers')">
+                    <div class="flex items-center justify-between mb-4">
+                        <i class="fas fa-chalkboard-teacher text-3xl"></i>
+                        <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">Staff</span>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Staff Records</h3>
+                    <p class="text-sm opacity-90">Teacher profiles, subjects & attendance</p>
+                </div>
+            </div>
             <!-- Quick Backup Options -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-all duration-300 shadow-xl" onclick="createQuickBackup('full')">
@@ -251,9 +343,132 @@
 </div>
 
 <script>
+// Export System Alpine.js Component
+function exportSystem() {
+    return {
+        modules: [],
+        exporting: false,
+        
+        async init() {
+            await this.loadModules();
+            // Initialize Lucide icons after modules load
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            });
+        },
+        
+        async loadModules() {
+            try {
+                console.log('Loading export modules from /backup/api/export/modules/');
+                const response = await fetch('/backup/api/export/modules/');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Modules data received:', data);
+                
+                if (data.status === 'success' && data.modules) {
+                    this.modules = data.modules.map(module => ({
+                        key: module.key,
+                        name: module.name,
+                        icon: this.getModuleIcon(module.key)
+                    }));
+                    console.log('Modules loaded successfully:', this.modules.length);
+                } else if (data.modules) {
+                    // Fallback for direct modules array
+                    this.modules = data.modules.map(module => ({
+                        key: module.key,
+                        name: module.name,
+                        icon: this.getModuleIcon(module.key)
+                    }));
+                    console.log('Modules loaded (fallback):', this.modules.length);
+                } else {
+                    throw new Error('No modules data in response');
+                }
+            } catch (error) {
+                console.error('Failed to load export modules:', error);
+                showToast(`Failed to load export modules: ${error.message}`, 'error');
+            }
+        },
+        
+        getModuleIcon(moduleKey) {
+            const icons = {
+                'students': 'users',
+                'teachers': 'user-check',
+                'subjects': 'book-open',
+                'transport': 'bus',
+                'fees': 'credit-card',
+                'student_fees': 'receipt',
+                'fines': 'alert-circle',
+                'attendance': 'calendar-check',
+                'promotion': 'trending-up',
+                'messaging': 'message-circle',
+                'users': 'user-cog',
+                'fees_report': 'file-bar-chart'
+            };
+            return icons[moduleKey] || 'file';
+        },
+        
+        async exportData(moduleKey, format) {
+            if (this.exporting) return;
+            
+            this.exporting = true;
+            showToast(`Exporting ${moduleKey} data as ${format.toUpperCase()}...`, 'info');
+            
+            try {
+                const response = await fetch(`/backup/api/export/${moduleKey}/${format}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                if (response.ok) {
+                    // Get filename from response headers or create default
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = `${moduleKey}_export.${format}`;
+                    
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    // Create download link
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    showToast(`${moduleKey} data exported successfully!`, 'success');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Export failed');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast(`Failed to export ${moduleKey} data: ${error.message}`, 'error');
+            } finally {
+                this.exporting = false;
+            }
+        }
+    }
+}
+
 // Utility functions
 function getCookie(name) {
-    console.log('🍪 Getting cookie:', name);
+    // console.log('🍪 Getting cookie:', name);
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
         const cookies = document.cookie.split(';');

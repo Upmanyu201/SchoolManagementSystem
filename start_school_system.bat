@@ -1,76 +1,117 @@
 @echo off
-title School Management System - Server
-color 0B
+setlocal enabledelayedexpansion
+chcp 65001 >nul
+title School Management System - Network Startup
 
 echo.
-echo ========================================
-echo   🎓 School Management System Server
-echo ========================================
+echo ===============================================
+echo    School Management System - Starting...
+echo ===============================================
 echo.
 
-echo 🔍 Detecting network interfaces...
+:: Initialize variables
+set "WIFI_IP="
+set "HOTSPOT_IP="
+set "SELECTED_IP=127.0.0.1"
 
-:: Get Wi-Fi IP
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /C:"Wireless LAN adapter Wi-Fi" /A:1 ^| findstr "IPv4"') do (
-    for /f "tokens=1" %%b in ("%%a") do set WIFI_IP=%%b
-)
+echo [INFO] Detecting network connections...
 
-:: Get Mobile Hotspot IP (check multiple possible adapter names)
-set HOTSPOT_IP=
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /C:"Local Area Connection\*" /A:5 ^| findstr "IPv4"') do (
-    for /f "tokens=1" %%b in ("%%a") do (
-        if not defined HOTSPOT_IP set HOTSPOT_IP=%%b
+:: Simple Wi-Fi detection
+for /f "tokens=*" %%a in ('ipconfig ^| findstr "IPv4"') do (
+    echo %%a | findstr "192.168.1" >nul
+    if !errorlevel! equ 0 (
+        for /f "tokens=2 delims=:" %%b in ("%%a") do (
+            set "temp=%%b"
+            set "temp=!temp: =!"
+            set "temp=!temp:(Preferred)=!"
+            set "WIFI_IP=!temp!"
+        )
     )
 )
 
-:: Clean up IPs (remove extra spaces)
-if defined WIFI_IP set WIFI_IP=%WIFI_IP: =%
-if defined HOTSPOT_IP set HOTSPOT_IP=%HOTSPOT_IP: =%
+:: Simple Hotspot detection - look for device IP, not host IP
+for /f "tokens=*" %%a in ('ipconfig ^| findstr "IPv4"') do (
+    echo %%a | findstr "192.168.137" >nul
+    if !errorlevel! equ 0 (
+        for /f "tokens=2 delims=:" %%b in ("%%a") do (
+            set "temp=%%b"
+            set "temp=!temp: =!"
+            set "temp=!temp:(Preferred)=!"
+            :: Skip .1 (host) and use device IP (.2, .3, etc.)
+            if not "!temp!"=="192.168.137.1" (
+                set "HOTSPOT_IP=!temp!"
+            )
+        )
+    )
+)
 
+:: Display results
 echo.
-echo 📡 Network Status:
 if defined WIFI_IP (
-    echo    ✅ Wi-Fi: %WIFI_IP%
+    echo [SUCCESS] Wi-Fi detected: !WIFI_IP!
+    set "SELECTED_IP=!WIFI_IP!"
 ) else (
-    echo    ❌ Wi-Fi: Not connected
+    echo [INFO] Wi-Fi not detected
 )
 
 if defined HOTSPOT_IP (
-    echo    ✅ Mobile Hotspot: %HOTSPOT_IP%
+    echo [SUCCESS] Mobile Hotspot detected: !HOTSPOT_IP!
+    if not defined WIFI_IP set "SELECTED_IP=!HOTSPOT_IP!"
 ) else (
-    echo    ❌ Mobile Hotspot: Not active
+    echo [INFO] Mobile Hotspot not detected
 )
 
 echo.
-echo 🔧 Activating virtual environment...
-if not exist "venv\Scripts\activate.bat" (
-    echo ❌ Virtual environment not found! Run setup_school_system.bat first.
+echo [INFO] Using IP: !SELECTED_IP!
+echo.
+
+:: Check Python
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python not found! Please install Python first.
     pause
     exit /b 1
 )
+
+:: Create venv if needed
+if not exist "venv" (
+    echo [INFO] Creating virtual environment...
+    python -m venv venv
+)
+
+:: Activate venv
+echo [INFO] Activating virtual environment...
 call venv\Scripts\activate.bat
 
-echo.
-echo 🚀 Starting Django development server...
-echo.
-echo 🌐 Access URLs:
-echo    📱 Local: http://127.0.0.1:8000/
-
-if defined WIFI_IP (
-    echo    📶 Wi-Fi Network: http://%WIFI_IP%:8000/
+:: Install requirements
+if exist "requirements.txt" (
+    echo [INFO] Installing requirements...
+    pip install -r requirements.txt >nul 2>&1
 )
 
-if defined HOTSPOT_IP (
-    echo    📡 Mobile Hotspot: http://%HOTSPOT_IP%:8000/
-)
+:: Run migrations
+echo [INFO] Applying migrations...
+python manage.py migrate >nul 2>&1
+
+:: Collect static files
+echo [INFO] Collecting static files...
+python manage.py collectstatic --noinput >nul 2>&1
 
 echo.
-echo 💡 Tips:
-echo    • Use Wi-Fi URL for devices on same network
-echo    • Use Hotspot URL when sharing internet via mobile hotspot
-echo    • Press Ctrl+C to stop the server
+echo ===============================================
+echo    SYSTEM READY!
+echo ===============================================
 echo.
-echo ⏳ Server starting...
+echo Local Access:    http://127.0.0.1:8000
+echo Network Access:  http://!SELECTED_IP!:8000
+if defined WIFI_IP echo Wi-Fi Access:   http://!WIFI_IP!:8000
+if defined HOTSPOT_IP echo Hotspot Access: http://!HOTSPOT_IP!:8000
+echo All Interfaces:  http://0.0.0.0:8000
+echo.
+echo Press Ctrl+C to stop the server
+echo.
 
 :: Start server on all interfaces
 python manage.py runserver 0.0.0.0:8000
+
+pause

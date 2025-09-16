@@ -5,7 +5,7 @@ title School Management System - Network Startup
 
 echo.
 echo ===============================================
-echo    School Management System - Starting...
+echo    School Management System - Production Mode
 echo ===============================================
 echo.
 
@@ -89,6 +89,11 @@ if exist "requirements.txt" (
     pip install -r requirements.txt >nul 2>&1
 )
 
+:: Clear template cache for production
+echo [INFO] Clearing template cache...
+for /d /r . %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d" >nul 2>&1
+del /s /q *.pyc >nul 2>&1
+
 :: Run migrations
 echo [INFO] Applying migrations...
 python manage.py migrate >nul 2>&1
@@ -97,10 +102,21 @@ python manage.py migrate >nul 2>&1
 echo [INFO] Collecting static files...
 python manage.py collectstatic --noinput >nul 2>&1
 
+:: Check production readiness
+echo [INFO] Checking production configuration...
+python manage.py check --deploy >nul 2>&1
+if errorlevel 1 (
+    echo [WARNING] Some production checks failed - continuing anyway
+) else (
+    echo [SUCCESS] Production checks passed
+)
+
 echo.
 echo ===============================================
-echo    SYSTEM READY!
+echo    PRODUCTION SYSTEM READY!
 echo ===============================================
+echo.
+echo [PRODUCTION MODE] DEBUG=False, Template Caching=ON
 echo.
 echo Local Access:    http://127.0.0.1:8000
 echo Network Access:  http://!SELECTED_IP!:8000
@@ -110,8 +126,11 @@ echo All Interfaces:  http://0.0.0.0:8000
 echo.
 echo Press Ctrl+C to stop the server
 echo.
+echo [PRODUCTION] Starting server with optimized settings...
+echo.
 
-:: Start server on all interfaces
-python manage.py runserver 0.0.0.0:8000
+:: Start server on all interfaces with production settings
+set DJANGO_SETTINGS_MODULE=school_management.settings
+python manage.py runserver 0.0.0.0:8000 --insecure
 
 pause

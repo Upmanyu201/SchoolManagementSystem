@@ -25,7 +25,7 @@ except ImportError:
 # SECURITY SETTINGS
 # ======================
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fixed-key-for-development-only-change-in-production-12345')
-DEBUG = True #os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = ['*']#os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 # Security Headers
@@ -108,29 +108,65 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'school_management.urls'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / "templates",
-            BASE_DIR / "fees/templates",
-            BASE_DIR / "school_profile/templates",
-            BASE_DIR / "settings/templates",
-        ],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'school_management.context_processors.academic_session_context',
-                'school_profile.context_processors.school_info',
-                'users.views.module_permissions_context',
+# Template configuration - production vs development
+if DEBUG:
+    # Development: Use APP_DIRS for simplicity
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [
+                BASE_DIR / "templates",
+                BASE_DIR / "fees/templates",
+                BASE_DIR / "school_profile/templates",
+                BASE_DIR / "settings/templates",
             ],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'debug': True,
+                'context_processors': [
+                    'django.template.context_processors.debug',
+                    'django.template.context_processors.request',
+                    'django.contrib.auth.context_processors.auth',
+                    'django.contrib.messages.context_processors.messages',
+                    'school_management.context_processors.academic_session_context',
+                    'school_profile.context_processors.school_info',
+                    'users.views.module_permissions_context',
+                ],
+            },
         },
-    },
-]
+    ]
+else:
+    # Production: Use cached loaders
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [
+                BASE_DIR / "templates",
+                BASE_DIR / "fees/templates",
+                BASE_DIR / "school_profile/templates",
+                BASE_DIR / "settings/templates",
+            ],
+            'APP_DIRS': False,
+            'OPTIONS': {
+                'debug': False,
+                'loaders': [
+                    ('django.template.loaders.cached.Loader', [
+                        'django.template.loaders.filesystem.Loader',
+                        'django.template.loaders.app_directories.Loader',
+                    ]),
+                ],
+                'context_processors': [
+                    'django.template.context_processors.debug',
+                    'django.template.context_processors.request',
+                    'django.contrib.auth.context_processors.auth',
+                    'django.contrib.messages.context_processors.messages',
+                    'school_management.context_processors.academic_session_context',
+                    'school_profile.context_processors.school_info',
+                    'users.views.module_permissions_context',
+                ],
+            },
+        },
+    ]
 
 WSGI_APPLICATION = 'school_management.wsgi.application'
 
@@ -209,7 +245,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ROOT = os.path.join(BASE_DIR, 'staticfiles', 'root')
-WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days cache
+WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30 if not DEBUG else 0  # 30 days cache in production
+WHITENOISE_USE_FINDERS = DEBUG  # Only use finders in development
+WHITENOISE_AUTOREFRESH = DEBUG  # Auto-refresh in development only
 
 # ======================
 # LOGGING CONFIGURATION

@@ -4,7 +4,7 @@ color 0C
 
 echo.
 echo ========================================
-echo   🎓 School Management System - Stop
+echo   🎓 School Management System - Stop Production
 echo ========================================
 echo.
 
@@ -36,13 +36,19 @@ if not errorlevel 1 (
 )
 
 echo.
-echo 🧹 Cleaning up...
+echo 🧹 Cleaning up production environment...
 :: Clean up any remaining Python processes related to Django
 wmic process where "name='python.exe' and commandline like '%%manage.py%%'" delete >nul 2>&1
 
+:: Clear any temporary files
+echo 🗑️ Clearing temporary files...
+if exist "*.tmp" del /q *.tmp >nul 2>&1
+if exist "temp\*" del /q temp\* >nul 2>&1
+
 echo.
-echo ✅ School Management System stopped successfully!
+echo ✅ Production server stopped successfully!
 echo.
-echo 💡 To start again, run: start_school_system.bat
+echo 💡 To start production server again, run: start_school_system.bat
+echo 🔧 To reconfigure production settings, run: setup_school_system.bat
 echo.
 pause

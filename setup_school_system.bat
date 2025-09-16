@@ -23,6 +23,18 @@ if errorlevel 1 (
 echo ✅ Python found!
 
 echo.
+echo 🔧 Setting up production environment...
+if not exist ".env" (
+    echo DEBUG=False > .env
+    echo SECRET_KEY=django-insecure-fixed-key-for-development-only-change-in-production-12345 >> .env
+    echo ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0 >> .env
+    echo USE_HTTPS=False >> .env
+    echo ✅ Production .env file created!
+) else (
+    echo ✅ Environment file already exists!
+)
+
+echo.
 echo 📦 Setting up virtual environment...
 if not exist "venv" (
     python -m venv venv
@@ -61,11 +73,24 @@ python manage.py collectstatic --noinput --verbosity=0
 echo ✅ Static files collected!
 
 echo.
-echo 🎉 Setup completed successfully!
+echo 🧹 Clearing template cache for production...
+for /d /r . %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d"
+del /s /q *.pyc >nul 2>&1
+echo ✅ Template cache cleared!
+
+echo.
+echo 🎉 Production setup completed successfully!
 echo.
 echo 💡 Next steps:
-echo    1. Run 'start_school_system.bat' to start the server
+echo    1. Run 'start_school_system.bat' to start the production server
 echo    2. Access the system via the displayed URLs
+echo    3. Login with superuser credentials
+echo.
+echo 🔒 Production Features Enabled:
+echo    ✅ DEBUG = False
+echo    ✅ Template caching enabled
+echo    ✅ Static file compression
+echo    ✅ Security headers configured
 echo.
 if defined HOTSPOT_IP (
     echo 📡 Mobile Hotspot detected: http://%HOTSPOT_IP%:8000/

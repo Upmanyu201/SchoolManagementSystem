@@ -8,25 +8,25 @@ from pathlib import Path
 import warnings
 from django.core.management.utils import get_random_secret_key
 
-# Load environment variables
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
-
 # Ignore warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 # ======================
 # SECURITY SETTINGS
 # ======================
-SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fixed-key-for-development-only-change-in-production-12345')
+DEBUG = False #os.environ.get("DEBUG", "False").lower() == "true"
+ALLOWED_HOSTS = ['*']#os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 # Security Headers
 if not DEBUG:
@@ -44,11 +44,17 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = [
-    'https://localhost:8000',
-    'https://127.0.0.1:8000',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
+    'https://localhost:9000',
+    'https://127.0.0.1:9000',
+    'http://localhost:9000',
+    'http://127.0.0.1:9000',
+    "http://192.168.1.106:9000",
+    'https://*.ngrok.io',
+    'https://*.ngrok-free.app',
 ]
+
+# Webhook CSRF exemption
+CSRF_EXEMPT_URLS = [r'^messaging/webhook/$']
 
 # ====================== 
 # APPLICATION DEFINITION
@@ -64,6 +70,7 @@ INSTALLED_APPS = [
     'sslserver',
     'rest_framework',
     'core',  # Add core app first
+    'core.fee_management',  # Add centralized fee management
     'users',
     'dashboard',
     'teachers',
@@ -79,17 +86,22 @@ INSTALLED_APPS = [
     'reports',
     'backup',
     'school_profile',
+    'messaging',
+    # 'django_celery_beat',
+    # 'django_celery_results',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'core.middleware.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 'core.middleware.SecurityMiddleware',  # Temporarily disabled
+    'core.middleware.pdf_export.PDFExportMiddleware',  # PDF export fix
     'django.contrib.messages.middleware.MessageMiddleware',
+    'users.middleware.ModuleAccessMiddleware',  # Module access control
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
 ]
@@ -114,6 +126,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'school_management.context_processors.academic_session_context',
                 'school_profile.context_processors.school_info',
+                'users.views.module_permissions_context',
             ],
         },
     },
@@ -144,11 +157,13 @@ DATABASES = {
 AUTH_USER_MODEL = 'users.CustomUser'
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'users.validators.SchoolPasswordValidator'},
+    {'NAME': 'users.validators.NoPersonalInfoValidator'},
 ]
-LOGIN_URL = '/login/'
+LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_EXEMPT_URLS = [r'^media/']
 
@@ -157,7 +172,7 @@ LOGIN_EXEMPT_URLS = [r'^media/']
 # ======================
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 24 hours
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_NAME = 'school_sessionid'
 SESSION_COOKIE_HTTPONLY = True
@@ -175,6 +190,10 @@ LANGUAGES = [
     ('hi', 'Hindi'),
 ]
 LOCALE_PATHS = [BASE_DIR / 'locale']
+
+# UTF-8 Encoding Settings
+DEFAULT_CHARSET = 'utf-8'
+FILE_CHARSET = 'utf-8'
 
 # ======================
 # STATIC & MEDIA FILES
@@ -195,28 +214,57 @@ WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days cache
 # ======================
 # LOGGING CONFIGURATION
 # ======================
+# Enhanced Logging Configuration for Backup System
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'ignore_broken_pipe': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: not ('Broken pipe' in record.getMessage() or 'Connection reset by peer' in record.getMessage()),
+        },
+    },
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '[{asctime}] {levelname} {name} {process:d} {thread:d} {message}',
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} - {message}',
+            'style': '{',
+        },
+        'backup_detailed': {
+            'format': '[{asctime}] {levelname} {name} {funcName}:{lineno} - {message}',
             'style': '{',
         },
     },
     'handlers': {
         'file': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'maxBytes': 15*1024*1024,  # 15MB
+            'backupCount': 10,
             'formatter': 'verbose',
         },
+        'backup_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'backup.log'),
+            'maxBytes': 10*1024*1024,  # 10MB
+            'backupCount': 5,
+            'formatter': 'backup_detailed',
+        },
+        'backup_security': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'backup_security.log'),
+            'maxBytes': 10*1024*1024,  # 10MB
+            'backupCount': 5,
+            'formatter': 'backup_detailed',
+        },
         'console': {
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -227,13 +275,51 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'myapp': {
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+        'backup': {
+            'handlers': ['backup_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'backup.security': {
+            'handlers': ['backup_security', 'backup_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'backup.audit': {
+            'handlers': ['backup_security'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'backup.performance': {
+            'handlers': ['backup_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'backup.monitoring': {
+            'handlers': ['backup_file', 'backup_security'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'export': {
+            'handlers': ['backup_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'export.api': {
+            'handlers': ['backup_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'urllib3.connectionpool': {
+            'handlers': [],
+            'level': 'WARNING',
             'propagate': False,
         },
     },
 }
+
+# Ensure log directory exists
+os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
 
 # ======================
 # FILE UPLOAD SETTINGS
@@ -257,9 +343,17 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # ======================
 # THIRD PARTY SETTINGS
 # ======================
-TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
-TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
-TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '')
+
+# ======================
+# CELERY CONFIGURATION
+# ======================
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # ======================
 # OTHER SETTINGS
@@ -288,3 +382,58 @@ REST_FRAMEWORK = {
     ],
 }
 
+
+# Additional Security Settings
+if not DEBUG:
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+
+# Backup System Configuration (Added by backup_security_fixes.py)
+BACKUP_MAX_FILE_SIZE = int(os.getenv('BACKUP_MAX_FILE_SIZE', 50 * 1024 * 1024))  # 50MB
+BACKUP_RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', 30))
+BACKUP_COMPRESSION_ENABLED = os.getenv('BACKUP_COMPRESSION_ENABLED', 'True').lower() == 'true'
+BACKUP_ENCRYPTION_ENABLED = os.getenv('BACKUP_ENCRYPTION_ENABLED', 'False').lower() == 'true'
+BACKUP_ENCRYPTION_KEY = os.getenv('BACKUP_ENCRYPTION_KEY')
+BACKUP_ASYNC_ENABLED = os.getenv('BACKUP_ASYNC_ENABLED', 'True').lower() == 'true'
+BACKUP_MAX_CONCURRENT_OPERATIONS = int(os.getenv('BACKUP_MAX_CONCURRENT_OPERATIONS', 3))
+BACKUP_CHUNK_SIZE = int(os.getenv('BACKUP_CHUNK_SIZE', 1000))
+BACKUP_HEALTH_CHECK_INTERVAL = int(os.getenv('BACKUP_HEALTH_CHECK_INTERVAL', 3600))
+BACKUP_ALERT_EMAIL_ENABLED = os.getenv('BACKUP_ALERT_EMAIL_ENABLED', 'True').lower() == 'true'
+BACKUP_METRICS_RETENTION_HOURS = int(os.getenv('BACKUP_METRICS_RETENTION_HOURS', 168))
+BACKUP_DIRECTORY = os.getenv('BACKUP_DIRECTORY', os.path.join(BASE_DIR, 'backups'))
+BACKUP_TEMP_DIRECTORY = os.getenv('BACKUP_TEMP_DIRECTORY', os.path.join(BASE_DIR, 'backups', 'temp'))
+BACKUP_CLEANUP_ENABLED = os.getenv('BACKUP_CLEANUP_ENABLED', 'True').lower() == 'true'
+BACKUP_MAX_BACKUPS_PER_TYPE = int(os.getenv('BACKUP_MAX_BACKUPS_PER_TYPE', 50))
+
+# Security Settings for Backup Operations
+SECURE_BACKUP_OPERATIONS = True
+BACKUP_REQUIRE_HTTPS = not DEBUG
+BACKUP_SESSION_TIMEOUT = 3600  # 1 hour
+BACKUP_MAX_LOGIN_ATTEMPTS = 5
+BACKUP_LOCKOUT_DURATION = 900  # 15 minutes
+
+
+# Enhanced Cache Configuration for Backup Rate Limiting
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'backup-cache',
+        'TIMEOUT': 3600,
+        'OPTIONS': {
+            'MAX_ENTRIES': 10000,
+            'CULL_FREQUENCY': 3,
+        }
+    }
+}
+
+# Session Configuration for Backup Security
+SESSION_COOKIE_AGE = BACKUP_SESSION_TIMEOUT
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Backup monitoring middleware disabled temporarily
+# if 'backup.monitoring.BackupMonitoringMiddleware' not in MIDDLEWARE:
+#     MIDDLEWARE = MIDDLEWARE + ['backup.monitoring.BackupMonitoringMiddleware']

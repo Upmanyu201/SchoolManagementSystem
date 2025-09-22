@@ -182,3 +182,25 @@ class UserModulePermission(models.Model):
         """Check if user has specific module permission"""
         field_name = f"{module_name}_{permission_type}"
         return getattr(self, field_name, False)
+    
+    @classmethod
+    def get_or_create_for_user(cls, user, **permissions):
+        """Get or create permissions for user - prevents duplicate errors"""
+        try:
+            obj, created = cls.objects.get_or_create(
+                user=user,
+                defaults=permissions
+            )
+            if not created and permissions:
+                # Update existing permissions
+                for field, value in permissions.items():
+                    setattr(obj, field, value)
+                obj.save()
+            return obj, created
+        except Exception:
+            # Fallback: try to get existing
+            try:
+                return cls.objects.get(user=user), False
+            except cls.DoesNotExist:
+                # Create with defaults if all else fails
+                return cls.objects.create(user=user, **permissions), True

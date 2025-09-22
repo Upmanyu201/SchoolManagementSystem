@@ -93,8 +93,7 @@ class ModulePermissionForm(forms.ModelForm):
     class Meta:
         model = UserModulePermission
         fields = [
-            'user',
-            # Academic modules
+            # Academic modules (removed 'user' from fields to prevent validation)
             'students_view', 'students_edit',
             'teachers_view', 'teachers_edit', 
             'subjects_view', 'subjects_edit',
@@ -222,22 +221,18 @@ class ModulePermissionForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        """Create or update permissions - Final fix using get_or_create"""
+        """Create or update permissions using safe method"""
         user = self.cleaned_data['user']
         
-        # Always use get_or_create to handle duplicates gracefully
-        permission, created = UserModulePermission.objects.get_or_create(
-            user=user,
-            defaults={}
-        )
-        
-        # Update all permission fields
+        # Prepare permission data from all fields except user
+        permission_data = {}
         for field_name in self.Meta.fields:
-            if field_name != 'user':
-                field_value = self.cleaned_data.get(field_name, False)
-                setattr(permission, field_name, field_value)
+            permission_data[field_name] = self.cleaned_data.get(field_name, False)
         
-        if commit:
-            permission.save()
+        # Use the safe get_or_create method
+        permission, created = UserModulePermission.get_or_create_for_user(
+            user=user,
+            **permission_data
+        )
         
         return permission

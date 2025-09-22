@@ -48,3 +48,10 @@ Thumbs.db
 
 # Other specific folders
 -p
+
+# Migrations
+migrations/__pycache__/
+migrations/*.pyc    
+migrations/*.pyo
+migrations/*.pyd
+migrations/*.py

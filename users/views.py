@@ -83,6 +83,8 @@ def module_access_view(request):
                 messages.error(request, "Something went wrong while saving the permissions. Please try again.")
         else:
             logger.error("❌ Form validation failed")
+            logger.error(f"🔍 Form errors: {form.errors}")
+            logger.error(f"🔍 Non-field errors: {form.non_field_errors()}")
             
             # Provide specific error messages
             for field, errors in form.errors.items():
@@ -90,6 +92,7 @@ def module_access_view(request):
                     if error.strip():  # Only show non-empty errors
                         field_display = field.replace('_', ' ').title()
                         messages.error(request, f"{field_display}: {error}")
+                        logger.error(f"🚨 Field error - {field}: {error}")
             
             # If no specific errors, show generic message
             if not any(error.strip() for errors in form.errors.values() for error in errors):

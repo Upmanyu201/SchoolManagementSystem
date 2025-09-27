@@ -45,11 +45,14 @@ class SchoolServerManager:
 ║                                                              ║
 ║  {Colors.GREEN}✨ Auto Network Detection  📱 Mobile Hotspot Support{Colors.END}{Colors.CYAN}      ║
 ║  {Colors.GREEN}🌐 Browser Auto-Launch     📊 Real-time Logs{Colors.END}{Colors.CYAN}             ║
-║  {Colors.GREEN}🔒 SSL Support             🚀 One-Click Startup{Colors.END}{Colors.CYAN}           ║
+║  {Colors.GREEN}🔒 SSL Support             🔑 License Management{Colors.END}{Colors.CYAN}          ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝{Colors.END}
 """
         print(banner)
+        
+        # Check demo status
+        self.check_demo_status()
         
     def get_network_interfaces(self):
         """Detect all available network interfaces"""
@@ -275,10 +278,60 @@ class SchoolServerManager:
         
         print(f"{Colors.GREEN}👋 School Management System stopped successfully!{Colors.END}")
     
+    def check_demo_status(self):
+        """Check demo/license status before starting server"""
+        try:
+            # Import Django and setup
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_management.settings')
+            import django
+            django.setup()
+            
+            from demo.services import LicenseService
+            
+            status = LicenseService.get_demo_status()
+            
+            if status.is_licensed:
+                print(f"{Colors.GREEN}✅ Licensed Version - Full Access{Colors.END}")
+                print(f"{Colors.CYAN}   Activated: {status.activated_at.strftime('%Y-%m-%d') if status.activated_at else 'N/A'}{Colors.END}")
+            elif status.is_active:
+                print(f"{Colors.YELLOW}⏰ Demo Version - {status.days_remaining} days remaining{Colors.END}")
+                if status.days_remaining <= 2:
+                    print(f"{Colors.RED}⚠️  Demo expires soon! Generate license key to continue.{Colors.END}")
+            else:
+                print(f"{Colors.RED}❌ Demo Expired - License Required{Colors.END}")
+                self.show_license_activation_help()
+                return False
+                
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Could not check license status: {e}{Colors.END}")
+            
+        return True
+    
+    def show_license_activation_help(self):
+        """Show license activation instructions"""
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🔑 License Activation Required{Colors.END}")
+        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+        print(f"{Colors.YELLOW}To continue using the School Management System:{Colors.END}")
+        print(f"\n{Colors.GREEN}1. Generate License Key:{Colors.END}")
+        print(f"   📁 Navigate to: D:\\Web Applications\\SchoolManagement\\")
+        print(f"   🖱️  Double-click: generate_license.bat")
+        print(f"\n{Colors.GREEN}2. Activate License:{Colors.END}")
+        print(f"   🌐 Visit: http://127.0.0.1:8000/demo/status/")
+        print(f"   🔑 Enter your license key")
+        print(f"\n{Colors.GREEN}3. Restart Server:{Colors.END}")
+        print(f"   🔄 Run this script again")
+        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+        
+        input(f"\n{Colors.YELLOW}Press Enter to continue anyway (limited functionality)...{Colors.END}")
+    
     def run(self):
         """Main execution method"""
         try:
             self.print_banner()
+            
+            # Check demo status first
+            if not self.check_demo_status():
+                print(f"{Colors.YELLOW}⚠️  Starting with limited functionality...{Colors.END}")
             
             print(f"{Colors.YELLOW}🔍 Detecting network interfaces...{Colors.END}")
             interfaces = self.get_network_interfaces()
@@ -290,6 +343,7 @@ class SchoolServerManager:
             self.setup_ssl_option()
             self.generate_server_urls()
             self.display_server_info()
+            self.show_license_reminder()
             self.setup_signal_handlers()
             
             if not self.start_django_server():
@@ -311,6 +365,25 @@ class SchoolServerManager:
             print(f"{Colors.RED}❌ Unexpected error: {e}{Colors.END}")
         finally:
             self.cleanup()
+    
+    def show_license_reminder(self):
+        """Show license reminder if in demo mode"""
+        try:
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_management.settings')
+            import django
+            django.setup()
+            
+            from demo.services import LicenseService
+            status = LicenseService.get_demo_status()
+            
+            if not status.is_licensed and status.is_active:
+                print(f"\n{Colors.BOLD}{Colors.YELLOW}💡 Demo Mode Reminder:{Colors.END}")
+                print(f"{Colors.YELLOW}   • {status.days_remaining} days remaining{Colors.END}")
+                print(f"{Colors.YELLOW}   • Some features are limited{Colors.END}")
+                print(f"{Colors.YELLOW}   • Activate at: /demo/status/{Colors.END}")
+                
+        except:
+            pass
 
 if __name__ == "__main__":
     if not os.path.exists('manage.py'):

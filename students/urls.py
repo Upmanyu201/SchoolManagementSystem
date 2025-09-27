@@ -3,6 +3,8 @@ from . import views
 from . import student_dashboard_views
 from . import api_views
 from . import fee_calculation_api
+from . import dashboard_api
+from . import transport_api
 from .debug_students import debug_students_count
 from .simple_test import simple_student_list
 from .coordination_test import coordination_test, coordination_api
@@ -31,12 +33,12 @@ urlpatterns = [
     
     # Dashboard API Endpoints
     path('api/dashboard/<str:admission_number>/', api_views.student_dashboard_api, name='student_dashboard_api'),
+    path('api/live-dashboard/<str:admission_number>/', dashboard_api.student_live_dashboard_api, name='student_live_dashboard_api'),
     path('api/timeline/<str:admission_number>/', student_dashboard_views.student_timeline_api, name='student_timeline_api'),
     path('api/payment/<str:admission_number>/', student_dashboard_views.student_payment_api, name='student_payment_api'),
     
     # Legacy API Endpoints (for backward compatibility)
     path('api/students/<str:admission_number>/payments/', api_views.student_payments_api, name='student_payments_api'),
-    path('api/students/<str:admission_number>/transport/', api_views.student_transport_api, name='student_transport_api'),
     path('debug/<str:admission_number>/', views.debug_transport, name='debug_transport'),
     path('debug-count/', debug_students_count, name='debug_students_count'),
     path('debug-pagination/', views.debug_pagination, name='debug_pagination'),

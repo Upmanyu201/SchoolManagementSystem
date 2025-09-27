@@ -19,7 +19,7 @@ def student_unified_dashboard(request, admission_number):
     """Student unified dashboard view with complete data"""
     try:
         clean_admission = sanitize_input(admission_number.strip())
-        student = get_object_or_404(Student, admission_number=clean_admission)
+        student = get_object_or_404(Student.objects.all_statuses(), admission_number=clean_admission)
         
         # Get complete dashboard data
         dashboard_data = StudentDashboardService.get_complete_dashboard_data(student)
@@ -71,7 +71,7 @@ def student_dashboard_api(request, admission_number):
     """API endpoint for student dashboard data"""
     try:
         clean_admission = sanitize_input(admission_number.strip())
-        student = get_object_or_404(Student, admission_number=clean_admission)
+        student = get_object_or_404(Student.objects.all_statuses(), admission_number=clean_admission)
         
         dashboard_data = StudentDashboardService.get_complete_dashboard_data(student)
         
@@ -93,7 +93,7 @@ def student_timeline_api(request, admission_number):
     try:
         limit = int(request.GET.get('limit', 30))
         clean_admission = sanitize_input(admission_number.strip())
-        student = get_object_or_404(Student, admission_number=clean_admission)
+        student = get_object_or_404(Student.objects.all_statuses(), admission_number=clean_admission)
         
         timeline = StudentDashboardService.get_student_timeline(student, days=limit)
         
@@ -116,7 +116,7 @@ def student_payment_api(request, admission_number):
     
     try:
         clean_admission = sanitize_input(admission_number.strip())
-        student = get_object_or_404(Student, admission_number=clean_admission)
+        student = get_object_or_404(Student.objects.all_statuses(), admission_number=clean_admission)
         payment_data = json.loads(request.body)
         
         # Basic payment processing (integrate with actual payment system)
@@ -160,7 +160,7 @@ def student_payment_api(request, admission_number):
 def student_payments_api(request, admission_number):
     """API endpoint for student payment history"""
     try:
-        student = get_object_or_404(Student, admission_number=admission_number)
+        student = get_object_or_404(Student.objects.all_statuses(), admission_number=admission_number)
         
         # Get recent payments (last 10)
         payments = student.fee_deposits.select_related('fees_type').order_by('-deposit_date')[:10]

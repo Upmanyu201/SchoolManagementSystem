@@ -75,6 +75,7 @@ urlpatterns = [
     path('backup/', include('backup.urls')),
     path('settings/', include('settings.urls')),
     path('messaging/', include('messaging.urls')),
+    path('demo/', include('demo.urls')),  # Demo license management
     
     # API routes
     path('api/dashboard-stats/', dashboard_stats_api, name='api_dashboard_stats'),

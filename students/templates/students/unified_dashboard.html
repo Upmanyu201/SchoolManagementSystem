@@ -142,7 +142,15 @@ body {
     <div class="dashboard-container max-w-7xl mx-auto" id="studentDashboard" data-admission="{{ student.admission_number }}">
         
         <!-- Notification Container -->
-        <div id="notifications" class="fixed top-4 right-4 z-50 space-y-2"></div>
+        <div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
+        
+        <!-- Back Button -->
+        <div class="mb-6">
+            <button onclick="window.history.back()" class="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl text-gray-700 hover:bg-white hover:shadow-md transition-all duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back
+            </button>
+        </div>
         
         <!-- Student Header Card -->
         <div class="glass-effect rounded-3xl p-8 mb-8 shadow-2xl border border-white/20">
@@ -174,6 +182,10 @@ body {
                             onclick="openPaymentModal()">
                         <i class="fas fa-credit-card mr-2"></i>Pay Fees
                     </button>
+                    <button class="btn-3d bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300" 
+                            onclick="dashboard.loadLiveData()" id="refreshBtn">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
                     <button class="btn-3d bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300" 
                             onclick="viewTimeline()">
                         <i class="fas fa-history mr-2"></i>Timeline
@@ -189,8 +201,8 @@ body {
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-red-100 text-sm font-medium mb-1">Current Dues</p>
-                        <h3 class="text-2xl font-bold current-dues">₹{{ financial_summary.carry_forward|floatformat:2|default:"0.00" }}</h3>
-                        <p class="text-red-100 text-xs mt-1">Due this month</p>
+                        <h3 class="text-2xl font-bold current-dues" data-live="current_dues">₹0.00</h3>
+                        <p class="text-red-100 text-xs mt-1" data-live="due_this_month_label">Due this month: ₹0.00</p>
                     </div>
                     <div class="bg-white/20 p-3 rounded-xl">
                         <i class="fas fa-exclamation-triangle text-2xl"></i>
@@ -203,8 +215,8 @@ body {
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-blue-100 text-sm font-medium mb-1">Total Balance</p>
-                        <h3 class="text-2xl font-bold total-balance">₹{{ financial_summary.total_outstanding|floatformat:2|default:"0.00" }}</h3>
-                        <p class="text-blue-100 text-xs mt-1">Academic year</p>
+                        <h3 class="text-2xl font-bold total-balance" data-live="total_balance">₹0.00</h3>
+                        <p class="text-blue-100 text-xs mt-1" data-live="academic_year_label">Academic year: ₹0.00 paid</p>
                     </div>
                     <div class="bg-white/20 p-3 rounded-xl">
                         <i class="fas fa-wallet text-2xl"></i>
@@ -217,14 +229,14 @@ body {
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-green-100 text-sm font-medium mb-1">Attendance</p>
-                        <h3 class="text-2xl font-bold">{{ dashboard_data.academic.attendance_percentage|default:"95" }}%</h3>
-                        <p class="text-green-100 text-xs mt-1">This semester</p>
+                        <h3 class="text-2xl font-bold" data-live="attendance_percentage">0%</h3>
+                        <p class="text-green-100 text-xs mt-1" data-live="semester_label">This semester: 0/0 days</p>
                     </div>
                     <div class="bg-white/20 p-3 rounded-xl">
                         <svg class="w-8 h-8 progress-ring" viewBox="0 0 36 36">
                             <path class="progress-ring-circle" stroke="currentColor" stroke-width="3" fill="transparent" 
                                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                                  stroke-dasharray="{{ dashboard_data.academic.attendance_percentage|default:95 }}, 100"/>
+                                  stroke-dasharray="0, 100" data-live="attendance_circle"/>
                         </svg>
                     </div>
                 </div>
@@ -235,14 +247,8 @@ body {
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-purple-100 text-sm font-medium mb-1">Last Payment</p>
-                        <h3 class="text-2xl font-bold last-payment">
-                            {% if financial_summary.last_payment %}
-                                ₹{{ financial_summary.last_payment.paid_amount|floatformat:2|default:"0.00" }}
-                            {% else %}
-                                ₹0.00
-                            {% endif %}
-                        </h3>
-                        <p class="text-purple-100 text-xs mt-1">Recent transaction</p>
+                        <h3 class="text-2xl font-bold last-payment" data-live="last_payment_amount">₹0.00</h3>
+                        <p class="text-purple-100 text-xs mt-1" data-live="last_payment_date">No recent transaction</p>
                     </div>
                     <div class="bg-white/20 p-3 rounded-xl">
                         <i class="fas fa-receipt text-2xl"></i>
@@ -304,34 +310,49 @@ body {
                             </div>
                         </div>
                         
-                        <!-- Quick Info -->
+                        <!-- Student Information -->
                         <div>
                             <div class="flex items-center mb-6">
-                                <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-3">
-                                    <i class="fas fa-info-circle text-green-600"></i>
+                                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
+                                    <i class="fas fa-user-graduate text-blue-600"></i>
                                 </div>
-                                <h3 class="text-xl font-bold text-gray-800">Quick Info</h3>
+                                <h3 class="text-xl font-bold text-gray-800">Student Information</h3>
                             </div>
-                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 space-y-4">
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6 space-y-4">
                                 <div class="flex items-center">
-                                    <i class="fas fa-mobile-alt text-blue-500 w-5 mr-3"></i>
-                                    <span class="text-gray-600 text-sm">Mobile:</span>
-                                    <span class="ml-auto font-semibold">{{ dashboard_data.profile.mobile|default:"Not provided" }}</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i class="fas fa-envelope text-purple-500 w-5 mr-3"></i>
-                                    <span class="text-gray-600 text-sm">Email:</span>
-                                    <span class="ml-auto font-semibold text-sm">{{ dashboard_data.profile.email|default:"Not provided" }}</span>
+                                    <i class="fas fa-id-badge text-blue-500 w-5 mr-3"></i>
+                                    <span class="text-gray-600 text-sm">Admission No:</span>
+                                    <span class="ml-auto font-semibold">{{ student.admission_number }}</span>
                                 </div>
                                 <div class="flex items-center">
                                     <i class="fas fa-graduation-cap text-green-500 w-5 mr-3"></i>
                                     <span class="text-gray-600 text-sm">Class:</span>
-                                    <span class="ml-auto font-semibold">{{ dashboard_data.profile.class }} {{ dashboard_data.profile.section }}</span>
+                                    <span class="ml-auto font-semibold">{{ student.class_section.display_name|default:"Not assigned" }}</span>
                                 </div>
                                 <div class="flex items-center">
                                     <i class="fas fa-calendar text-orange-500 w-5 mr-3"></i>
-                                    <span class="text-gray-600 text-sm">Admission:</span>
+                                    <span class="text-gray-600 text-sm">Date of Birth:</span>
+                                    <span class="ml-auto font-semibold">{{ student.date_of_birth|date:"d M Y"|default:"N/A" }}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar-plus text-purple-500 w-5 mr-3"></i>
+                                    <span class="text-gray-600 text-sm">Admission Date:</span>
                                     <span class="ml-auto font-semibold">{{ student.date_of_admission|date:"d M Y"|default:"N/A" }}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-mobile-alt text-cyan-500 w-5 mr-3"></i>
+                                    <span class="text-gray-600 text-sm">Mobile:</span>
+                                    <span class="ml-auto font-semibold">{{ student.mobile_number|default:"Not provided" }}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-envelope text-red-500 w-5 mr-3"></i>
+                                    <span class="text-gray-600 text-sm">Email:</span>
+                                    <span class="ml-auto font-semibold text-sm">{{ student.email|default:"Not provided" }}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-info-circle text-gray-500 w-5 mr-3"></i>
+                                    <span class="text-gray-600 text-sm">Status:</span>
+                                    <span class="ml-auto font-semibold px-2 py-1 rounded-full text-xs {% if student.status == 'ACTIVE' %}bg-green-100 text-green-800{% elif student.status == 'SUSPENDED' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">{{ student.get_status_display }}</span>
                                 </div>
                             </div>
                         </div>
@@ -352,15 +373,19 @@ body {
                             <div class="space-y-4">
                                 <div class="flex justify-between items-center py-3 border-b border-blue-200">
                                     <span class="text-gray-600">Current Session Dues:</span>
-                                    <span class="font-bold text-lg dues-amount">₹{{ financial_summary.current_session_dues|floatformat:2|default:"0.00" }}</span>
+                                    <span class="font-bold text-lg dues-amount" data-live="fee_current_dues">₹0.00</span>
                                 </div>
                                 <div class="flex justify-between items-center py-3 border-b border-blue-200">
                                     <span class="text-gray-600">Carry Forward:</span>
-                                    <span class="font-bold text-lg">₹{{ financial_summary.carry_forward|floatformat:2|default:"0.00" }}</span>
+                                    <span class="font-bold text-lg" data-live="fee_carry_forward">₹0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center py-3 border-b border-blue-200">
+                                    <span class="text-gray-600">Due This Month:</span>
+                                    <span class="font-bold text-lg" data-live="fee_due_month">₹0.00</span>
                                 </div>
                                 <div class="flex justify-between items-center py-3">
                                     <span class="text-gray-600">Total Outstanding:</span>
-                                    <span class="font-bold text-xl {% if financial_summary.total_outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %}">₹{{ financial_summary.total_outstanding|floatformat:2|default:"0.00" }}</span>
+                                    <span class="font-bold text-xl text-red-600" data-live="fee_total_outstanding">₹0.00</span>
                                 </div>
                             </div>
                         </div>
@@ -397,7 +422,14 @@ body {
                             <h3 class="text-xl font-bold text-gray-800 mb-6">Monthly Breakdown</h3>
                             <div class="monthly-attendance">
                                 <!-- Monthly data will be loaded here -->
-                                <div class="loading-skeleton h-64 rounded-xl"></div>
+                                <div class="text-center py-8">
+                                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i class="fas fa-calendar-alt text-blue-600 text-xl"></i>
+                                    </div>
+                                    <p class="text-gray-600 mb-2">Monthly Attendance</p>
+                                    <div class="text-2xl font-bold text-blue-700" data-live="monthly_attendance">0%</div>
+                                    <div class="text-sm text-gray-500 mt-1" data-live="monthly_details">This month: 0/0 days</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -432,7 +464,7 @@ body {
                         <div class="transport-info">
                             {% if student.transport_assignment %}
                                 <!-- Transport Assigned -->
-                                <div class="bg-white rounded-xl p-6 shadow-sm">
+                                <div class="bg-white rounded-xl p-6 shadow-sm" id="transport-assigned" style="display: none;">
                                     <div class="flex items-center mb-4">
                                         <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
                                             <i class="fas fa-check-circle text-green-600 text-xl"></i>
@@ -449,7 +481,7 @@ body {
                                                 <i class="fas fa-route text-blue-500 mr-3"></i>
                                                 <div>
                                                     <p class="text-sm text-gray-600">Route</p>
-                                                    <p class="font-semibold text-gray-800">{{ student.transport_assignment.route.route_name|default:"Route 5" }}</p>
+                                                    <p class="font-semibold text-gray-800" data-live="transport_route">Loading...</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -459,7 +491,7 @@ body {
                                                 <i class="fas fa-map-marker-alt text-purple-500 mr-3"></i>
                                                 <div>
                                                     <p class="text-sm text-gray-600">Stoppage</p>
-                                                    <p class="font-semibold text-gray-800">{{ student.transport_assignment.stoppage.stoppage_name|default:"Simra" }}</p>
+                                                    <p class="font-semibold text-gray-800" data-live="transport_stoppage">Loading...</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -469,20 +501,19 @@ body {
                                                 <i class="fas fa-calendar text-green-500 mr-3"></i>
                                                 <div>
                                                     <p class="text-sm text-gray-600">Assigned Date</p>
-                                                    <p class="font-semibold text-gray-800">{{ student.transport_assignment.assigned_date|date:"d M Y"|default:"15 Aug 2025" }}</p>
+                                                    <p class="font-semibold text-gray-800" data-live="transport_date">Loading...</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    {% if student.transport_assignment.stoppage.pickup_time %}
-                                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" id="transport-times">
                                         <div class="bg-orange-50 rounded-lg p-4">
                                             <div class="flex items-center">
                                                 <i class="fas fa-clock text-orange-500 mr-3"></i>
                                                 <div>
                                                     <p class="text-sm text-gray-600">Pickup Time</p>
-                                                    <p class="font-semibold text-gray-800">{{ student.transport_assignment.stoppage.pickup_time|default:"Not specified" }}</p>
+                                                    <p class="font-semibold text-gray-800" data-live="pickup_time">Loading...</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -492,12 +523,11 @@ body {
                                                 <i class="fas fa-clock text-indigo-500 mr-3"></i>
                                                 <div>
                                                     <p class="text-sm text-gray-600">Drop Time</p>
-                                                    <p class="font-semibold text-gray-800">{{ student.transport_assignment.stoppage.drop_time|default:"Not specified" }}</p>
+                                                    <p class="font-semibold text-gray-800" data-live="drop_time">Loading...</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    {% endif %}
                                     
                                     <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                         <div class="flex items-start">
@@ -516,7 +546,7 @@ body {
                                 </div>
                             {% else %}
                                 <!-- No Transport Assigned -->
-                                <div class="bg-white rounded-xl p-8 shadow-sm text-center">
+                                <div class="bg-white rounded-xl p-8 shadow-sm text-center" id="transport-not-assigned">
                                     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <i class="fas fa-times-circle text-gray-400 text-2xl"></i>
                                     </div>
@@ -588,8 +618,14 @@ class StudentDashboard {
     
     init() {
         this.setupTabs();
+        this.loadLiveData();
         this.loadInitialData();
         this.setupEventListeners();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            this.loadLiveData();
+        }, 30000);
     }
     
     setupTabs() {
@@ -657,6 +693,139 @@ class StudentDashboard {
     
     loadInitialData() {
         this.loadRecentActivities();
+    }
+    
+    loadLiveData() {
+        const admissionNumber = document.getElementById('studentDashboard').dataset.admission;
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        // Show loading state
+        if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...';
+            refreshBtn.disabled = true;
+        }
+        
+        fetch(`/students/api/live-dashboard/${admissionNumber}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.updateDashboardCards(data.data);
+                    this.showNotification('Dashboard updated successfully!', 'success');
+                } else {
+                    console.error('Failed to load live data:', data.error);
+                    this.showNotification('Failed to update dashboard data', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading live data:', error);
+                this.showNotification('Error updating dashboard data', 'error');
+            })
+            .finally(() => {
+                // Reset button state
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Refresh';
+                    refreshBtn.disabled = false;
+                }
+            });
+    }
+    
+    updateDashboardCards(data) {
+        // Update financial data
+        const financial = data.financial;
+        this.updateElement('[data-live="current_dues"]', `₹${this.formatNumber(financial.current_dues)}`);
+        this.updateElement('[data-live="due_this_month_label"]', `Due this month: ₹${this.formatNumber(financial.due_this_month)}`);
+        this.updateElement('[data-live="total_balance"]', `₹${this.formatNumber(financial.total_balance)}`);
+        this.updateElement('[data-live="academic_year_label"]', `Academic year: ₹${this.formatNumber(financial.academic_year_paid)} paid`);
+        
+        // Update attendance data
+        const attendance = data.attendance;
+        this.updateElement('[data-live="attendance_percentage"]', `${attendance.semester_percentage}%`);
+        this.updateElement('[data-live="semester_label"]', `This semester: ${attendance.semester_present}/${attendance.semester_total} days`);
+        
+        // Update monthly attendance
+        this.updateElement('[data-live="monthly_attendance"]', `${attendance.monthly_percentage}%`);
+        this.updateElement('[data-live="monthly_details"]', `This month: ${attendance.monthly_present}/${attendance.monthly_total} days`);
+        
+        // Update attendance circle
+        const circle = document.querySelector('[data-live="attendance_circle"]');
+        if (circle) {
+            circle.setAttribute('stroke-dasharray', `${attendance.semester_percentage}, 100`);
+        }
+        
+        // Update last payment data
+        const payment = data.payment;
+        if (payment.amount > 0) {
+            this.updateElement('[data-live="last_payment_amount"]', `₹${this.formatNumber(payment.amount)}`);
+            this.updateElement('[data-live="last_payment_date"]', `${payment.date} - ${payment.fee_type}`);
+        } else {
+            this.updateElement('[data-live="last_payment_amount"]', '₹0.00');
+            this.updateElement('[data-live="last_payment_date"]', 'No recent transaction');
+        }
+        
+        // Update transport data
+        this.updateTransportInfo(data.transport);
+        
+        // Update fee breakdown in fees tab
+        this.updateElement('[data-live="fee_current_dues"]', `₹${this.formatNumber(financial.current_dues)}`);
+        this.updateElement('[data-live="fee_carry_forward"]', `₹${this.formatNumber(financial.current_dues)}`);
+        this.updateElement('[data-live="fee_due_month"]', `₹${this.formatNumber(financial.due_this_month)}`);
+        this.updateElement('[data-live="fee_total_outstanding"]', `₹${this.formatNumber(financial.total_balance)}`);
+        
+        // Update color for total outstanding
+        const totalElement = document.querySelector('[data-live="fee_total_outstanding"]');
+        if (totalElement) {
+            if (financial.total_balance > 0) {
+                totalElement.className = 'font-bold text-xl text-red-600';
+            } else {
+                totalElement.className = 'font-bold text-xl text-green-600';
+            }
+        }
+    }
+    
+    updateTransportInfo(transport) {
+        const assignedDiv = document.getElementById('transport-assigned');
+        const notAssignedDiv = document.getElementById('transport-not-assigned');
+        
+        if (!assignedDiv || !notAssignedDiv) {
+            console.warn('Transport elements not found in DOM');
+            return;
+        }
+        
+        if (transport.assigned) {
+            assignedDiv.style.display = 'block';
+            notAssignedDiv.style.display = 'none';
+            
+            this.updateElement('[data-live="transport_route"]', transport.route_name);
+            this.updateElement('[data-live="transport_stoppage"]', transport.stoppage_name);
+            this.updateElement('[data-live="transport_date"]', transport.assigned_date);
+            
+            if (transport.pickup_time && transport.pickup_time !== 'Not specified') {
+                this.updateElement('[data-live="pickup_time"]', transport.pickup_time);
+                this.updateElement('[data-live="drop_time"]', transport.drop_time || 'Not specified');
+                const timesDiv = document.getElementById('transport-times');
+                if (timesDiv) timesDiv.style.display = 'grid';
+            } else {
+                const timesDiv = document.getElementById('transport-times');
+                if (timesDiv) timesDiv.style.display = 'none';
+            }
+        } else {
+            assignedDiv.style.display = 'none';
+            notAssignedDiv.style.display = 'block';
+        }
+    }
+    
+    updateElement(selector, value) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+    
+    formatNumber(num) {
+        return parseFloat(num).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     }
     
     loadRecentActivities() {
@@ -778,23 +947,77 @@ class StudentDashboard {
     }
     
     loadAttendanceData() {
-        // Simulate loading attendance data
-        setTimeout(() => {
-            const container = document.querySelector('.attendance-chart');
-            if (container) {
-                container.innerHTML = '<div class="text-center py-8"><p class="text-gray-600">Attendance chart will be displayed here</p></div>';
-            }
-        }, 800);
+        const admissionNumber = document.getElementById('studentDashboard').dataset.admission;
+        
+        // Load attendance data from API
+        fetch(`/attendance/api/report/?student_id=${admissionNumber}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.querySelector('.attendance-chart');
+                if (container && data.length > 0) {
+                    const studentData = data[0];
+                    container.innerHTML = `
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <div class="text-4xl font-bold text-green-600">${studentData.percentage}%</div>
+                                <div class="text-gray-600">Overall Attendance</div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div class="bg-green-100 p-3 rounded-lg">
+                                    <div class="font-bold text-green-700">${studentData.present_days}</div>
+                                    <div class="text-gray-600">Present</div>
+                                </div>
+                                <div class="bg-red-100 p-3 rounded-lg">
+                                    <div class="font-bold text-red-700">${studentData.absent_days}</div>
+                                    <div class="text-gray-600">Absent</div>
+                                </div>
+                                <div class="bg-blue-100 p-3 rounded-lg">
+                                    <div class="font-bold text-blue-700">${studentData.total_days}</div>
+                                    <div class="text-gray-600">Total</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="text-center py-8"><p class="text-gray-600">No attendance data available</p></div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading attendance data:', error);
+                const container = document.querySelector('.attendance-chart');
+                if (container) {
+                    container.innerHTML = '<div class="text-center py-8"><p class="text-gray-600">Error loading attendance data</p></div>';
+                }
+            });
     }
     
     loadResultsData() {
-        // Simulate loading results data
-        setTimeout(() => {
-            const container = document.querySelector('.results-content');
-            if (container) {
-                container.innerHTML = '<div class="text-center py-8"><p class="text-gray-600">Academic results will be displayed here</p></div>';
-            }
-        }, 800);
+        const container = document.querySelector('.results-content');
+        if (container) {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-line text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Results Coming Soon</h3>
+                    <p class="text-gray-600">Academic results and grade reports will be available here once the examination module is integrated.</p>
+                    <div class="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4 max-w-md mx-auto">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-purple-600 mr-3"></i>
+                            <div class="text-left">
+                                <h5 class="font-semibold text-purple-800 mb-1">What's Coming</h5>
+                                <ul class="text-sm text-purple-700 space-y-1">
+                                    <li>• Exam results and grades</li>
+                                    <li>• Subject-wise performance</li>
+                                    <li>• Progress tracking charts</li>
+                                    <li>• Comparative analysis</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
     }
     
     loadTransportData() {

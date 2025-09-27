@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}License Status - School Management System{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+    <div class="max-w-4xl mx-auto px-4">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i data-lucide="shield-check" class="w-8 h-8 inline mr-3 text-blue-600"></i>
+                License Status
+            </h1>
+            <p class="text-gray-600">Manage your School Management System license</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
+            <div class="{% if is_licensed %}bg-gradient-to-r from-green-500 to-emerald-600{% elif is_active %}bg-gradient-to-r from-blue-500 to-indigo-600{% else %}bg-gradient-to-r from-red-500 to-pink-600{% endif %} px-8 py-6">
+                <div class="flex items-center justify-between text-white">
+                    <div>
+                        <h2 class="text-2xl font-bold">
+                            {% if is_licensed %}
+                                ✅ Licensed Version
+                            {% elif is_active %}
+                                ⏰ Demo Version
+                            {% else %}
+                                ❌ Demo Expired
+                            {% endif %}
+                        </h2>
+                        <p class="text-white/90">
+                            {% if is_licensed %}
+                                Unlimited access to all features
+                            {% elif is_active %}
+                                {{ days_remaining }} days remaining
+                            {% else %}
+                                Please activate your license
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold">
+                            {% if is_licensed %}∞{% else %}{{ days_remaining }}{% endif %}
+                        </div>
+                        <div class="text-sm text-white/80">
+                            {% if is_licensed %}Days{% else %}Days Left{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8">
+                {% if not is_licensed %}
+                    <!-- License Activation Form -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                            <i data-lucide="key" class="w-5 h-5 inline mr-2"></i>
+                            Activate License
+                        </h3>
+                        
+
+
+                        <form id="licenseForm" class="space-y-4">
+                            {% csrf_token %}
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    License Key (Format: SMS-XXXX-XXXX-XXXX)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="licenseKey"
+                                    placeholder="SMS-1234-5678-9ABC"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-center text-lg"
+                                    maxlength="17"
+                                    pattern="SMS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}"
+                                >
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 font-semibold"
+                                id="activateBtn"
+                            >
+                                <i data-lucide="unlock" class="w-5 h-5 inline mr-2"></i>
+                                Activate License
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <!-- Machine Information -->
+                <div class="border-t pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i data-lucide="monitor" class="w-5 h-5 inline mr-2"></i>
+                        Machine Information
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm text-gray-600">Machine ID</div>
+                            <div class="font-mono text-sm text-gray-800 break-all">{{ machine_id }}</div>
+                        </div>
+                        
+                        {% if is_licensed %}
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="text-sm text-green-600">License Key</div>
+                            <div class="font-mono text-sm text-green-800">{{ demo_status.license_key }}</div>
+                        </div>
+                        {% else %}
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <div class="text-sm text-blue-600">Machine ID</div>
+                            <div class="font-mono text-sm text-blue-800">{{ machine_id }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if is_licensed %}
+                <!-- License Details -->
+                <div class="border-t pt-6 mt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i data-lucide="check-circle" class="w-5 h-5 inline mr-2"></i>
+                        License Details
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-600">Activated On</div>
+                            <div class="font-medium">{{ demo_status.activated_at|date:"F d, Y" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600">Activated By</div>
+                            <div class="font-medium">{{ demo_status.activated_by.get_full_name|default:"System" }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center space-x-4">
+            <a href="{% url 'dashboard' %}" class="inline-flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                Back to Dashboard
+            </a>
+            
+            {% if not is_licensed %}
+            <a href="javascript:void(0)" onclick="showLicenseHelp()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i data-lucide="help-circle" class="w-4 h-4 mr-2"></i>
+                Need Help?
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+<script>
+// Initialize Lucide icons
+lucide.createIcons();
+
+// License activation form
+document.getElementById('licenseForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const licenseKey = document.getElementById('licenseKey').value.trim();
+    const activateBtn = document.getElementById('activateBtn');
+    
+    if (!licenseKey) {
+        showMessage('Please enter a license key', 'error');
+        return;
+    }
+    
+    // Validate format
+    const licensePattern = /^SMS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    if (!licensePattern.test(licenseKey.toUpperCase())) {
+        showMessage('Invalid license key format. Use: SMS-XXXX-XXXX-XXXX', 'error');
+        return;
+    }
+    
+    // Show loading state
+    activateBtn.disabled = true;
+    activateBtn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 inline mr-2 animate-spin"></i>Activating...';
+    
+    try {
+        const response = await fetch('{% url "demo:activate" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                license_key: licenseKey.toUpperCase()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(result.message, 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showMessage(result.message, 'error');
+        }
+        
+    } catch (error) {
+        showMessage('Network error. Please try again.', 'error');
+    } finally {
+        activateBtn.disabled = false;
+        activateBtn.innerHTML = '<i data-lucide="unlock" class="w-5 h-5 inline mr-2"></i>Activate License';
+        lucide.createIcons();
+    }
+});
+
+// Format license key input
+document.getElementById('licenseKey')?.addEventListener('input', function(e) {
+    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    if (value.length > 3 && !value.startsWith('SMS')) {
+        value = 'SMS' + value.substring(3);
+    }
+    
+    if (value.length > 3) {
+        value = value.substring(0, 3) + '-' + value.substring(3);
+    }
+    if (value.length > 8) {
+        value = value.substring(0, 8) + '-' + value.substring(8);
+    }
+    if (value.length > 13) {
+        value = value.substring(0, 13) + '-' + value.substring(13);
+    }
+    
+    e.target.value = value.substring(0, 17);
+});
+
+// Show message function
+function showMessage(message, type) {
+    const container = document.getElementById('messageContainer');
+    const messageDiv = document.createElement('div');
+    
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    
+    messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transform transition-all duration-300 translate-x-full`;
+    messageDiv.innerHTML = `
+        <div class="flex items-center">
+            <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-5 h-5 mr-2"></i>
+            ${message}
+        </div>
+    `;
+    
+    container.appendChild(messageDiv);
+    lucide.createIcons();
+    
+    // Animate in
+    setTimeout(() => {
+        messageDiv.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        messageDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            container.removeChild(messageDiv);
+        }, 300);
+    }, 5000);
+}
+
+// Show license help
+function showLicenseHelp() {
+    alert(`To generate a license key:
+
+1. Navigate to: D:\\Web Applications\\SchoolManagement\\
+2. Double-click: generate_license.bat
+3. Copy the generated license key
+4. Paste it in the form above
+
+The license key will be in format: SMS-XXXX-XXXX-XXXX
+
+Need more help? Check the README_LICENSE.md file.`);
+}
+</script>
+{% endblock %}

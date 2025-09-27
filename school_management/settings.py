@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'sslserver',
     'rest_framework',
+    'demo',  # Add demo app first for license management
     'core',  # Add core app first
     'core.fee_management',  # Add centralized fee management
     'users',
@@ -99,6 +100,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'demo.middleware.DemoMiddleware',  # Demo license checking
     'users.middleware.ModuleAccessMiddleware',  # Module access control
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Removed heavy middleware for performance

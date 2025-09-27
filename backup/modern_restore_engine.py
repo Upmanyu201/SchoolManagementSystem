@@ -45,16 +45,29 @@ class ModernRestoreEngine:
         'fines.fine',
         'fines.finestudent',
         'attendance.attendance',
+        'subjects.subjectassignment',  # Add this to handle unique constraints
+        'users.customuser',
+        'users.usermodulepermission',
     ]
     
     ALLOWED_APPS = [
         'core', 'school_profile', 'teachers', 'subjects', 'students',
         'transport', 'student_fees', 'fees', 'fines', 'attendance',
-        'promotion', 'reports', 'messaging'
+        'promotion', 'reports', 'messaging', 'users'
     ]
 
     def __init__(self):
         self.stats = RestoreResult()
+        
+    def _file_exists(self, file_path: str) -> bool:
+        """Check if file exists in media directory"""
+        if not file_path:
+            return False
+        
+        from pathlib import Path
+        media_root = Path(settings.MEDIA_ROOT) if hasattr(settings, 'MEDIA_ROOT') else Path(settings.BASE_DIR) / 'media'
+        full_path = media_root / file_path
+        return full_path.exists()
         
     def restore_backup(self, file_path: str, mode: str = 'merge') -> RestoreResult:
         """Main restore method"""
@@ -135,46 +148,70 @@ class ModernRestoreEngine:
             self.stats.errors += len(records)
 
     def _restore_record(self, model, record: Dict, mode: str):
-        """Restore individual record"""
+        """Restore individual record with file handling fixes"""
         try:
-            with transaction.atomic():
-                fields = record.get('fields', {})
-                pk = record.get('pk')
-                
-                # Clean fields
-                cleaned_fields = self._clean_fields(model, fields)
-                
-                # Skip if no valid fields
-                if not cleaned_fields:
-                    self.stats.skipped += 1
-                    return
-                
-                # Check existing
-                existing = None
-                if pk:
-                    try:
-                        existing = model.objects.get(pk=pk)
-                    except model.DoesNotExist:
-                        pass
-                
-                if existing and mode == 'merge':
-                    # Update existing
-                    for field_name, value in cleaned_fields.items():
-                        if value is not None:  # Only update non-null values
-                            setattr(existing, field_name, value)
-                    existing.save()
-                    self.stats.updated += 1
-                elif not existing:
-                    # Create new
+            fields = record.get('fields', {})
+            pk = record.get('pk')
+            
+            # Clean fields and handle file paths
+            cleaned_fields = self._clean_fields(model, fields)
+            
+            # Skip if no valid fields
+            if not cleaned_fields:
+                self.stats.skipped += 1
+                return
+            
+            # Handle file fields - clear non-existent file references
+            file_fields = ['student_image', 'aadhar_card', 'transfer_certificate', 'profile_picture']
+            for field_name in file_fields:
+                if field_name in cleaned_fields:
+                    file_path = cleaned_fields[field_name]
+                    if file_path and not self._file_exists(file_path):
+                        # Clear non-existent file reference instead of failing
+                        cleaned_fields[field_name] = None
+                        logger.warning(f"Cleared non-existent file reference: {file_path}")
+            
+            # Use separate transaction for each record to prevent rollbacks
+            try:
+                with transaction.atomic():
+                    # Check existing
+                    existing = None
                     if pk:
-                        cleaned_fields['id'] = pk
-                    model.objects.create(**cleaned_fields)
-                    self.stats.created += 1
-                else:
-                    self.stats.skipped += 1
+                        try:
+                            existing = model.objects.get(pk=pk)
+                        except model.DoesNotExist:
+                            pass
+                    
+                    if existing and mode == 'merge':
+                        # Update existing
+                        for field_name, value in cleaned_fields.items():
+                            if value is not None:  # Only update non-null values
+                                setattr(existing, field_name, value)
+                        existing.save()
+                        self.stats.updated += 1
+                    elif not existing:
+                        # Create new - handle unique constraints
+                        try:
+                            if pk:
+                                cleaned_fields['id'] = pk
+                            model.objects.create(**cleaned_fields)
+                            self.stats.created += 1
+                        except Exception as create_error:
+                            if 'UNIQUE constraint failed' in str(create_error):
+                                # Skip duplicate records instead of failing
+                                logger.warning(f"Skipped duplicate record for {model.__name__}: {create_error}")
+                                self.stats.skipped += 1
+                            else:
+                                raise create_error
+                    else:
+                        self.stats.skipped += 1
+            except Exception as atomic_error:
+                # Log but don't fail the entire restore
+                logger.error(f"Record restore failed for {model.__name__}: {atomic_error}")
+                self.stats.errors += 1
                     
         except Exception as e:
-            logger.error(f"Record restore failed: {e}")
+            logger.error(f"Record processing failed: {e}")
             self.stats.errors += 1
 
     def _clean_fields(self, model, fields: Dict) -> Dict:
@@ -194,27 +231,38 @@ class ModernRestoreEngine:
         return cleaned
 
     def _convert_value(self, field, value):
-        """Convert field value to proper type"""
+        """Convert field value to proper type with better error handling"""
         if value in ('', 'null', None):
             return None
         
         from django.db import models
         
-        if isinstance(field, models.ForeignKey):
-            # For foreign keys, try to get the related object
-            try:
-                related_model = field.related_model
-                return related_model.objects.get(pk=value)
-            except (related_model.DoesNotExist, ValueError):
-                return None
-        elif isinstance(field, models.DecimalField):
-            return Decimal(str(value)) if value else None
-        elif isinstance(field, models.BooleanField):
-            return str(value).lower() in ('true', '1', 'yes') if isinstance(value, str) else bool(value)
-        elif isinstance(field, models.IntegerField):
-            return int(float(value)) if value else None
-        elif isinstance(field, models.CharField):
-            return str(value)[:field.max_length] if hasattr(field, 'max_length') else str(value)
+        try:
+            if isinstance(field, models.ForeignKey):
+                # For foreign keys, try to get the related object
+                try:
+                    related_model = field.related_model
+                    return related_model.objects.get(pk=value)
+                except (related_model.DoesNotExist, ValueError, TypeError):
+                    # Return None for missing foreign keys instead of failing
+                    logger.warning(f"Foreign key not found: {field.name} = {value}")
+                    return None
+            elif isinstance(field, models.DecimalField):
+                return Decimal(str(value)) if value else None
+            elif isinstance(field, models.BooleanField):
+                return str(value).lower() in ('true', '1', 'yes') if isinstance(value, str) else bool(value)
+            elif isinstance(field, models.IntegerField):
+                return int(float(value)) if value else None
+            elif isinstance(field, models.CharField):
+                return str(value)[:field.max_length] if hasattr(field, 'max_length') else str(value)
+            elif isinstance(field, models.FileField):
+                # Handle file fields - return None if file doesn't exist
+                if value and not self._file_exists(value):
+                    return None
+                return value
+        except Exception as e:
+            logger.warning(f"Field conversion failed for {field.name}: {e}")
+            return None
         
         return value
 

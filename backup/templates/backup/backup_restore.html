@@ -7,7 +7,7 @@
 <script src="{% static 'js/enhanced_backup.js' %}" defer></script>
 <!-- Load Lucide icons for export system -->
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 pt-24">
     <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
             <!-- Header Card -->
@@ -453,7 +453,7 @@ function getCookie(name) {
 
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-xl shadow-lg animate-slide-in ${
+    toast.className = `fixed top-20 right-4 z-50 p-4 rounded-xl shadow-lg animate-slide-in ${
         type === 'success' ? 'bg-green-500' : 
         type === 'error' ? 'bg-red-500' : 'bg-blue-500'
     } text-white`;
@@ -971,14 +971,16 @@ function analyzeBackupFile() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success') {
-            currentAnalysis = data.analysis;
-            displayAnalysisResults(data.analysis, data.file_name, data.file_size);
+        console.log('Analysis response data:', data);
+        if (data.status === 'success' && data.data && data.data.analysis) {
+            currentAnalysis = data.data.analysis;
+            displayAnalysisResults(data.data.analysis, data.data.file_name, data.data.file_size);
             analysisResults.classList.remove('hidden');
             smartRestoreBtn.disabled = false;
             showToast('Backup analysis completed successfully!', 'success');
         } else {
-            showToast(data.message || 'Analysis failed', 'error');
+            console.error('Analysis failed or missing data:', data);
+            showToast(data.message || 'Analysis failed - invalid response data', 'error');
         }
     })
     .catch(error => {
@@ -993,6 +995,12 @@ function analyzeBackupFile() {
 
 function displayAnalysisResults(analysis, fileName, fileSize) {
     const analysisContent = document.getElementById('analysisContent');
+    
+    if (!analysis || !analysis.categories_found) {
+        console.error('Analysis error: Invalid analysis object:', analysis);
+        analysisContent.innerHTML = '<div class="text-red-600">Error: Invalid analysis data received</div>';
+        return;
+    }
     
     const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
     
@@ -1026,11 +1034,11 @@ function displayAnalysisResults(analysis, fileName, fileSize) {
     analysisContent.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div class="bg-white rounded-lg p-3 border border-blue-200 text-center">
-                <div class="text-2xl font-bold text-blue-800">${analysis.total_records}</div>
+                <div class="text-2xl font-bold text-blue-800">${analysis.total_records || 0}</div>
                 <div class="text-sm text-gray-600">Total Records</div>
             </div>
             <div class="bg-white rounded-lg p-3 border border-blue-200 text-center">
-                <div class="text-2xl font-bold text-green-600">${Object.keys(analysis.categories_found).length}</div>
+                <div class="text-2xl font-bold text-green-600">${analysis.categories_found ? Object.keys(analysis.categories_found).length : 0}</div>
                 <div class="text-sm text-gray-600">Data Categories</div>
             </div>
             <div class="bg-white rounded-lg p-3 border border-blue-200 text-center">

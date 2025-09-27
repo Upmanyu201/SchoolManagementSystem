@@ -1,24 +1,19 @@
 {
-  "name": "School-Management-System",
-  "description": "description",
-  "authors": "W3UR",
+  "name": "school-management-system",
   "version": "1.0.0",
-  "main": "pathToMain",
-  "dependencies": {}
-}
-
-{
+  "description": "School Management System with Django and Tailwind CSS",
+  "scripts": {
+    "build-css": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind-output.css --minify",
+    "watch-css": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind-output.css --watch",
+    "dev": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind-output.css --watch",
+    "prod": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind-output.css --minify"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.4"
-  },
-  "scripts": {
-    "tailwindcss:version": "tailwindcss -v"
+    "tailwindcss": "^3.4.0"
   },
   "dependencies": {
-    "@tailwindcss/cli": "^4.0.9",
-    "@tailwindcss/vite": "^4.1.4",
     "lucide": "^0.477.0"
   }
 }

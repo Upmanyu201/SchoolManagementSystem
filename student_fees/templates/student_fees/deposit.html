@@ -202,7 +202,7 @@ onclick="event.preventDefault(); event.stopPropagation(); console.log('🔍 [CLI
                 </div>
 
                 <!-- Fees Container -->
-                <div id="fees-container-{{ student.admission_number }}" class="p-6 w-full">
+                <div id="fees-container-{{ student.admission_number }}" class="p-6 w-full" style="display: none;">
                     <div class="border-2 border-dashed border-blue-300 rounded-xl p-8 loading-container text-center">
                         <div class="flex justify-center mb-4">
                             <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
@@ -292,9 +292,34 @@ onclick="event.preventDefault(); event.stopPropagation(); console.log('🔍 [CLI
 {% block scripts %}
 <script src="{% static 'js/consolidated_fees_handler.js' %}"></script>
 <script>
-// Global function for loadStudentFees
+// Global function for loadStudentFees with collapse functionality
 function loadStudentFees(button) {
     const admissionNumber = button.getAttribute('data-admission-number');
+    const studentCard = button.closest('.student-card');
+    const targetContainer = studentCard.querySelector('#fees-container-' + admissionNumber);
+    
+    // Check if fees are already visible
+    const isVisible = targetContainer.style.display !== 'none';
+    
+    // First, collapse all other open fees containers
+    document.querySelectorAll('[id^="fees-container-"]').forEach(container => {
+        if (container !== targetContainer) {
+            container.style.display = 'none';
+            // Reset button text for other students
+            const otherButton = container.closest('.student-card').querySelector('.view-fees-btn');
+            if (otherButton) {
+                otherButton.innerHTML = '<i class="fas fa-money-check-alt mr-2"></i>{% trans "Process Payment" %}';
+            }
+        }
+    });
+    
+    // Toggle current container
+    if (isVisible) {
+        // Collapse current
+        targetContainer.style.display = 'none';
+        button.innerHTML = '<i class="fas fa-money-check-alt mr-2"></i>{% trans "Process Payment" %}';
+        return;
+    }
     
     // Prevent duplicate calls
     if (button.dataset.loading === 'true') {
@@ -305,14 +330,15 @@ function loadStudentFees(button) {
     button.dataset.loading = 'true';
     console.log('🚀 [START] Loading fees for:', admissionNumber);
     
-    const studentCard = button.closest('.student-card');
-    const targetContainer = studentCard.querySelector('#fees-container-' + admissionNumber);
-    
     if (!targetContainer) {
         console.error('❌ [ERROR] Container not found for:', admissionNumber);
         button.dataset.loading = 'false';
         return;
     }
+    
+    // Show container and update button text
+    targetContainer.style.display = 'block';
+    button.innerHTML = '<i class="fas fa-times mr-2"></i>{% trans "Close Payment" %}';
     
     if (window.consolidatedFeeManager) {
         window.consolidatedFeeManager.loadStudentFeesDirectly(

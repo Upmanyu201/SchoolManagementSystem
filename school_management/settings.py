@@ -98,12 +98,12 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'core.middleware.SecurityMiddleware',  # Temporarily disabled
-    'core.middleware.pdf_export.PDFExportMiddleware',  # PDF export fix
     'django.contrib.messages.middleware.MessageMiddleware',
     'users.middleware.ModuleAccessMiddleware',  # Module access control
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
+    # Removed heavy middleware for performance
+    # 'core.middleware.pdf_export.PDFExportMiddleware',  # Disabled for performance
+    # 'django.middleware.locale.LocaleMiddleware',  # Disabled if not using i18n
 ]
 
 ROOT_URLCONF = 'school_management.urls'
@@ -241,13 +241,14 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# WhiteNoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# WhiteNoise configuration - Performance Optimized
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ROOT = os.path.join(BASE_DIR, 'staticfiles', 'root')
-WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30 if not DEBUG else 0  # 30 days cache in production
-WHITENOISE_USE_FINDERS = DEBUG  # Only use finders in development
-WHITENOISE_AUTOREFRESH = DEBUG  # Auto-refresh in development only
+WHITENOISE_MAX_AGE = 60 * 60 * 24 * 7 if not DEBUG else 0  # 7 days cache (reduced)
+WHITENOISE_USE_FINDERS = DEBUG
+WHITENOISE_AUTOREFRESH = DEBUG
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 
 # ======================
 # LOGGING CONFIGURATION
@@ -454,14 +455,23 @@ BACKUP_MAX_LOGIN_ATTEMPTS = 5
 BACKUP_LOCKOUT_DURATION = 900  # 15 minutes
 
 
-# Enhanced Cache Configuration for Backup Rate Limiting
+# Enhanced Cache Configuration - Performance Optimized
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'backup-cache',
-        'TIMEOUT': 3600,
+        'LOCATION': 'school-cache',
+        'TIMEOUT': 1800,  # 30 minutes (reduced from 1 hour)
         'OPTIONS': {
-            'MAX_ENTRIES': 10000,
+            'MAX_ENTRIES': 5000,  # Reduced for memory efficiency
+            'CULL_FREQUENCY': 4,  # More aggressive culling
+        }
+    },
+    'ml_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'ml-predictions',
+        'TIMEOUT': 900,  # 15 minutes for ML predictions
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
             'CULL_FREQUENCY': 3,
         }
     }

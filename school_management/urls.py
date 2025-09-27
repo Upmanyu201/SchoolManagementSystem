@@ -16,6 +16,8 @@ import re
 # Dashboard Views
 from dashboard.views import dashboard_view, dashboard_stats_api
 from dashboard.ml_views import ml_insights, student_risk_api, fee_optimization_api
+from students.transport_api import student_transport_api
+from attendance.dashboard_api import attendance_report_api
 
 # Chrome DevTools handler
 def chrome_devtools_handler(request):
@@ -76,6 +78,12 @@ urlpatterns = [
     
     # API routes
     path('api/dashboard-stats/', dashboard_stats_api, name='api_dashboard_stats'),
+    
+    # Student API routes
+    path('api/students/<str:admission_number>/transport/', student_transport_api, name='student_transport_api'),
+    
+    # Attendance API routes
+    path('attendance/api/report/', attendance_report_api, name='attendance_report_api'),
     
     # ML Dashboard routes
     path('dashboard/ml-insights/', ml_insights, name='ml_insights'),

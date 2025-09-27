@@ -677,7 +677,8 @@ def get_daily_payment_summary():
     ).order_by('deposit_date__date')
     
     avg_daily = sum(day['daily_amount'] or 0 for day in recent_days) / max(len(recent_days), 1)
-    tomorrow_prediction = round(avg_daily * (1 + (weekly_growth / 100)), 0)
+    # Convert to float to avoid Decimal/float mixing
+    tomorrow_prediction = round(float(avg_daily) * (1 + (float(weekly_growth) / 100)), 0)
     
     return {
         'today_amount': today_amount,

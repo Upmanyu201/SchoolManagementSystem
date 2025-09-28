@@ -11,7 +11,7 @@ class DemoStatus(models.Model):
     demo_started = models.DateTimeField(auto_now_add=True)
     demo_expires = models.DateTimeField()
     is_licensed = models.BooleanField(default=False)
-    license_key = models.CharField(max_length=17, blank=True, null=True)
+    license_key = models.CharField(max_length=18, blank=True, null=True)
     activated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     activated_at = models.DateTimeField(null=True, blank=True)
     
@@ -54,7 +54,7 @@ class DemoStatus(models.Model):
 class LicenseActivation(models.Model):
     """Track license activation attempts"""
     demo_status = models.ForeignKey(DemoStatus, on_delete=models.CASCADE)
-    license_key_attempted = models.CharField(max_length=17)
+    license_key_attempted = models.CharField(max_length=18)
     attempted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     attempted_at = models.DateTimeField(auto_now_add=True)
     success = models.BooleanField(default=False)

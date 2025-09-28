@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 import json
 from .services import LicenseService
 from .models import DemoStatus
@@ -69,3 +70,45 @@ def demo_expired(request):
     }
     
     return render(request, 'demo/expired.html', context)
+
+def reset_demo(request):
+    """Reset demo period for testing (7 days from now)"""
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.http import JsonResponse
+    from django.views.decorators.http import require_POST
+    from django.views.decorators.csrf import csrf_exempt
+    
+    if request.method == 'POST':
+        try:
+            demo_status = LicenseService.get_demo_status()
+            
+            # Reset demo period to 7 days from now
+            demo_status.demo_expires = timezone.now() + timedelta(days=7)
+            demo_status.is_licensed = False
+            demo_status.license_key = None
+            demo_status.activated_by = None
+            demo_status.activated_at = None
+            demo_status.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Demo period reset successfully! You now have 7 days.',
+                'new_expiry': demo_status.demo_expires.isoformat(),
+                'days_remaining': demo_status.days_remaining
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error resetting demo: {str(e)}'
+            })
+    
+    # GET request - show reset page
+    demo_status = LicenseService.get_demo_status()
+    context = {
+        'demo_status': demo_status,
+        'machine_id': LicenseService.get_machine_id()
+    }
+    
+    return render(request, 'demo/reset.html', context)

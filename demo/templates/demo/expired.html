@@ -5,124 +5,224 @@
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-purple-50 flex items-center justify-center py-8">
-    <div class="max-w-2xl mx-auto px-4">
+    <div class="max-w-4xl mx-auto px-4">
         
-        <!-- Expired Card -->
-        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div class="bg-gradient-to-r from-red-500 to-pink-600 px-8 py-12 text-center">
-                <div class="text-6xl mb-4">⏰</div>
-                <h1 class="text-3xl font-bold text-white mb-2">Demo Period Expired</h1>
-                <p class="text-white/90 text-lg">Your 7-day trial has ended</p>
-            </div>
-
-            <div class="p-8 text-center">
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">
-                        Thank you for trying our School Management System!
-                    </h2>
-                    <p class="text-gray-600 leading-relaxed">
-                        We hope you enjoyed exploring the features during your trial period. 
-                        To continue using the system with unlimited access, please activate your license.
-                    </p>
-                </div>
-
-                <!-- Machine Info -->
-                <div class="bg-gray-50 rounded-lg p-6 mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i data-lucide="monitor" class="w-5 h-5 inline mr-2"></i>
-                        Your Machine Information
-                    </h3>
-                    <div class="text-sm text-gray-600 mb-2">Machine ID:</div>
-                    <div class="font-mono text-sm text-gray-800 bg-white px-3 py-2 rounded border break-all">
-                        {{ machine_id }}
+        <!-- Enhanced Expired Card -->
+        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+            <!-- Dramatic Header -->
+            <div class="bg-gradient-to-r from-red-500 via-pink-600 to-purple-600 px-8 py-16 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-black/10"></div>
+                <div class="relative z-10">
+                    <div class="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse-slow">
+                        <i data-lucide="clock" class="w-12 h-12 text-white"></i>
+                    </div>
+                    <h1 class="text-4xl font-bold text-white mb-3">Demo Period Expired</h1>
+                    <p class="text-white/90 text-xl mb-4">Your 7-day trial has ended</p>
+                    <div class="inline-flex items-center px-4 py-2 bg-white/20 rounded-full text-white text-sm">
+                        <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+                        Trial ended - License required for continued access
                     </div>
                 </div>
+            </div>
 
-                <!-- Activation Steps -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
-                    <h3 class="text-lg font-semibold text-blue-800 mb-4">
-                        <i data-lucide="key" class="w-5 h-5 inline mr-2"></i>
-                        How to Activate Your License
-                    </h3>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-start">
-                            <div class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">1</div>
-                            <div>
-                                <div class="font-medium text-blue-800">Generate License Key</div>
-                                <div class="text-blue-700 text-sm">
-                                    Navigate to: <code class="bg-blue-100 px-2 py-1 rounded">D:\Web Applications\SchoolManagement\</code><br>
-                                    Double-click: <code class="bg-blue-100 px-2 py-1 rounded">generate_license.bat</code>
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
+                <!-- Left Column: Thank You & Steps -->
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="text-center lg:text-left">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                            Thank you for trying our School Management System!
+                        </h2>
+                        <p class="text-gray-600 text-lg leading-relaxed">
+                            We hope you enjoyed exploring all 17 modules and 26 ML features during your trial. 
+                            To continue with unlimited access, please activate your license below.
+                        </p>
+                    </div>
+
+                    <!-- Enhanced Activation Steps -->
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-8">
+                        <h3 class="text-2xl font-bold text-blue-800 mb-6 flex items-center">
+                            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                                <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                            </div>
+                            Quick Activation Guide
+                        </h3>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-start group hover:bg-white/50 rounded-xl p-4 transition-all">
+                                <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-4 mt-1 group-hover:scale-110 transition-transform">1</div>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-blue-800 mb-1">Generate License Key</div>
+                                    <div class="text-blue-700 text-sm mb-2">
+                                        Open File Explorer and navigate to:
+                                    </div>
+                                    <div class="bg-blue-100 rounded-lg p-3 font-mono text-sm text-blue-800 mb-2">
+                                        D:\Web Applications\SchoolManagement\
+                                    </div>
+                                    <div class="text-blue-700 text-sm">
+                                        Double-click: <code class="bg-blue-200 px-2 py-1 rounded font-semibold">generate_license.bat</code>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start group hover:bg-white/50 rounded-xl p-4 transition-all">
+                                <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-4 mt-1 group-hover:scale-110 transition-transform">2</div>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-blue-800 mb-1">Copy License Key</div>
+                                    <div class="text-blue-700 text-sm">
+                                        Copy the generated key in format: <code class="bg-blue-200 px-2 py-1 rounded font-semibold">SMS-XXXX-XXXX-XXXX</code>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start group hover:bg-white/50 rounded-xl p-4 transition-all">
+                                <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-4 mt-1 group-hover:scale-110 transition-transform">3</div>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-blue-800 mb-1">Activate License</div>
+                                    <div class="text-blue-700 text-sm">
+                                        Paste the license key in the form below and click activate
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Quick Activation Form -->
+                    <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">Instant Activation</h3>
                         
-                        <div class="flex items-start">
-                            <div class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">2</div>
-                            <div>
-                                <div class="font-medium text-blue-800">Copy License Key</div>
-                                <div class="text-blue-700 text-sm">Copy the generated key (format: SMS-XXXX-XXXX-XXXX)</div>
+                        <form id="quickActivationForm" class="space-y-6">
+                            {% csrf_token %}
+                            <div class="relative">
+                                <label class="block text-gray-700 font-semibold mb-3 text-lg">
+                                    Enter Your License Key
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        id="quickLicenseKey"
+                                        placeholder="SMS-9E84-874F-EE66"
+                                        class="w-full px-6 py-4 pr-12 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-center text-xl bg-gray-50 hover:bg-white transition-all"
+                                        maxlength="19"
+                                    >
+                                    <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                                        <i data-lucide="key" class="w-6 h-6 text-gray-400"></i>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-500 mt-2 text-center">Format: SMS-XXXX-XXXX-XXXX</div>
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                class="w-full bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl hover:from-green-700 hover:via-blue-700 hover:to-purple-700 transition-all transform hover:scale-[1.02] font-bold text-xl shadow-xl"
+                                id="quickActivateBtn"
+                            >
+                                <i data-lucide="unlock" class="w-6 h-6 inline mr-3"></i>
+                                Activate License Now
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column: Machine Info & Stats -->
+                <div class="space-y-6">
+                    <!-- Machine Information Card -->
+                    <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i data-lucide="monitor" class="w-5 h-5 mr-2 text-gray-600"></i>
+                            Machine Information
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div class="bg-white rounded-xl p-4 border">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-600">Machine ID</span>
+                                    <button onclick="copyToClipboard('{{ machine_id }}')" class="text-blue-600 hover:text-blue-800 transition-colors">
+                                        <i data-lucide="copy" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <div class="font-mono text-sm text-gray-800 bg-gray-50 px-3 py-2 rounded border break-all">{{ machine_id }}</div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl p-4 border">
+                                <div class="text-sm font-medium text-gray-600 mb-3">System Status</div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 text-sm">Access Level</span>
+                                        <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Expired</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 text-sm">Modules</span>
+                                        <span class="text-gray-800 font-medium text-sm">0/17</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 text-sm">ML Models</span>
+                                        <span class="text-gray-800 font-medium text-sm">0/26</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- What You'll Get Card -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+                        <h3 class="text-lg font-bold text-green-800 mb-4 flex items-center">
+                            <i data-lucide="gift" class="w-5 h-5 mr-2"></i>
+                            What You'll Get
+                        </h3>
                         
-                        <div class="flex items-start">
-                            <div class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">3</div>
-                            <div>
-                                <div class="font-medium text-blue-800">Activate License</div>
-                                <div class="text-blue-700 text-sm">Click the button below and enter your license key</div>
+                        <div class="space-y-3">
+                            <div class="flex items-center text-green-700">
+                                <i data-lucide="check" class="w-4 h-4 mr-3 text-green-600"></i>
+                                <span class="text-sm">All 17 modules unlocked</span>
+                            </div>
+                            <div class="flex items-center text-green-700">
+                                <i data-lucide="check" class="w-4 h-4 mr-3 text-green-600"></i>
+                                <span class="text-sm">26 AI/ML models active</span>
+                            </div>
+                            <div class="flex items-center text-green-700">
+                                <i data-lucide="check" class="w-4 h-4 mr-3 text-green-600"></i>
+                                <span class="text-sm">Unlimited students & data</span>
+                            </div>
+                            <div class="flex items-center text-green-700">
+                                <i data-lucide="check" class="w-4 h-4 mr-3 text-green-600"></i>
+                                <span class="text-sm">Advanced reporting</span>
+                            </div>
+                            <div class="flex items-center text-green-700">
+                                <i data-lucide="check" class="w-4 h-4 mr-3 text-green-600"></i>
+                                <span class="text-sm">No expiration date</span>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Quick Activation Form -->
-                <div class="mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Activation</h3>
-                    
-                    <form id="quickActivationForm" class="space-y-4">
-                        {% csrf_token %}
-                        <div>
-                            <input 
-                                type="text" 
-                                id="quickLicenseKey"
-                                placeholder="Enter your license key: SMS-XXXX-XXXX-XXXX"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-center"
-                                maxlength="17"
-                            >
-                        </div>
+            <!-- Enhanced Action Buttons -->
+            <div class="bg-gray-50 px-8 py-8">
+                <div class="text-center space-y-6">
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="{% url 'demo:status' %}" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 font-semibold shadow-lg">
+                            <i data-lucide="settings" class="w-5 h-5 mr-2"></i>
+                            License Settings
+                        </a>
                         
-                        <button 
-                            type="submit" 
-                            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 font-semibold"
-                            id="quickActivateBtn"
-                        >
-                            <i data-lucide="unlock" class="w-5 h-5 inline mr-2"></i>
-                            Activate License Now
+                        <button onclick="showPurchaseInfo()" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-semibold shadow-lg">
+                            <i data-lucide="shopping-cart" class="w-5 h-5 mr-2"></i>
+                            Purchase License
                         </button>
-                    </form>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="{% url 'demo:status' %}" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        <i data-lucide="settings" class="w-4 h-4 mr-2"></i>
-                        Go to License Settings
-                    </a>
+                        
+                        <button onclick="showDetailedHelp()" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-semibold shadow-lg">
+                            <i data-lucide="help-circle" class="w-5 h-5 mr-2"></i>
+                            Get Help
+                        </button>
+                    </div>
                     
-                    <button onclick="showDetailedHelp()" class="inline-flex items-center justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                        <i data-lucide="help-circle" class="w-4 h-4 mr-2"></i>
-                        Need Help?
-                    </button>
-                </div>
-
-                <!-- Contact Info -->
-                <div class="mt-8 pt-8 border-t border-gray-200">
-                    <p class="text-gray-500 text-sm">
-                        Having trouble? Contact our support team:<br>
-                        📧 <a href="mailto:support@schoolmanagement.com" class="text-blue-600 hover:underline">support@schoolmanagement.com</a>
-                    </p>
+                    <div class="text-sm text-gray-500">
+                        Need assistance? Our license system is designed to be simple and secure.
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -130,9 +230,93 @@
 <!-- Success/Error Messages -->
 <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
 
+<!-- Enhanced Styles for Animations -->
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+    40%, 43% { transform: translate3d(0, -10px, 0); }
+    70% { transform: translate3d(0, -5px, 0); }
+    90% { transform: translate3d(0, -2px, 0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-out;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+}
+
+.animate-pulse-slow {
+    animation: pulse 3s infinite;
+}
+
+.animate-bounce-slow {
+    animation: bounce 2s infinite;
+}
+
+/* Hover effects */
+.hover-scale:hover {
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+}
+
+.hover-glow:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    transition: box-shadow 0.3s ease;
+}
+
+/* Loading spinner */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Gradient animation */
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+}
+</style>
+
 <script>
-// Initialize Lucide icons
-lucide.createIcons();
+// Initialize Lucide icons when available
+function initializeLucideIcons() {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+        console.log('✅ Lucide icons initialized in demo expired');
+    } else {
+        // Wait for Lucide to load
+        setTimeout(initializeLucideIcons, 100);
+    }
+}
+
+// Start initialization
+initializeLucideIcons();
 
 // Quick activation form
 document.getElementById('quickActivationForm').addEventListener('submit', async function(e) {
@@ -178,29 +362,44 @@ document.getElementById('quickActivationForm').addEventListener('submit', async 
     } finally {
         activateBtn.disabled = false;
         activateBtn.innerHTML = '<i data-lucide="unlock" class="w-5 h-5 inline mr-2"></i>Activate License Now';
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 });
 
 // Format license key input
 document.getElementById('quickLicenseKey').addEventListener('input', function(e) {
-    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     
-    if (value.length > 3 && !value.startsWith('SMS')) {
-        value = 'SMS' + value.substring(3);
-    }
+    // Remove existing dashes to reformat
+    let cleanValue = value.replace(/-/g, '');
     
-    if (value.length > 3) {
-        value = value.substring(0, 3) + '-' + value.substring(3);
-    }
-    if (value.length > 8) {
-        value = value.substring(0, 8) + '-' + value.substring(8);
-    }
-    if (value.length > 13) {
-        value = value.substring(0, 13) + '-' + value.substring(13);
+    // Ensure it starts with SMS
+    if (cleanValue.length > 0 && !cleanValue.startsWith('SMS')) {
+        if (cleanValue.length <= 3) {
+            cleanValue = 'SMS'.substring(0, cleanValue.length);
+        } else {
+            cleanValue = 'SMS' + cleanValue.substring(3);
+        }
     }
     
-    e.target.value = value.substring(0, 17);
+    // Limit to 15 characters (SMS + 12 digits/letters)
+    cleanValue = cleanValue.substring(0, 15);
+    
+    // Add dashes at appropriate positions
+    let formatted = cleanValue;
+    if (cleanValue.length > 3) {
+        formatted = cleanValue.substring(0, 3) + '-' + cleanValue.substring(3);
+    }
+    if (cleanValue.length > 7) {
+        formatted = cleanValue.substring(0, 3) + '-' + cleanValue.substring(3, 7) + '-' + cleanValue.substring(7);
+    }
+    if (cleanValue.length > 11) {
+        formatted = cleanValue.substring(0, 3) + '-' + cleanValue.substring(3, 7) + '-' + cleanValue.substring(7, 11) + '-' + cleanValue.substring(11);
+    }
+    
+    e.target.value = formatted;
 });
 
 // Show message function
@@ -219,7 +418,9 @@ function showMessage(message, type) {
     `;
     
     container.appendChild(messageDiv);
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
     
     // Animate in
     setTimeout(() => {
@@ -235,33 +436,189 @@ function showMessage(message, type) {
     }, 5000);
 }
 
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showMessage('Machine ID copied to clipboard!', 'success');
+    }).catch(function() {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showMessage('Machine ID copied to clipboard!', 'success');
+    });
+}
+
+// Show purchase information
+function showPurchaseInfo() {
+    const purchaseText = `PURCHASE SCHOOL MANAGEMENT SYSTEM LICENSE
+
+💰 License Price: Contact for pricing
+🔒 Secure Payment: Multiple payment options available
+📧 Contact: sales@schoolmanagement.com
+📞 Phone: +1-XXX-XXX-XXXX
+
+📋 What You Need to Provide:
+• Your Machine ID: {{ machine_id }}
+• School/Organization Name
+• Contact Information
+• Preferred Payment Method
+
+🎯 What You'll Receive:
+• Unique license key for this machine
+• Full system activation
+• Technical support
+• Free updates for 1 year
+
+⚠️ Important:
+• License keys are generated after payment confirmation
+• Each machine requires a separate license
+• Keys are non-transferable between machines
+
+Click OK to copy your Machine ID for the purchase request...`;
+    
+    if (confirm(purchaseText)) {
+        copyToClipboard('{{ machine_id }}');
+        showMessage('Machine ID copied! Include this in your purchase request.', 'success');
+    }
+}
+
 // Show detailed help
 function showDetailedHelp() {
-    const helpText = `DETAILED ACTIVATION GUIDE:
-
-STEP 1: Generate License Key
-• Open File Explorer
-• Navigate to: D:\\Web Applications\\SchoolManagement\\
-• Find and double-click: generate_license.bat
-• Wait for the license generator to run
-• Copy the license key (SMS-XXXX-XXXX-XXXX format)
-
-STEP 2: Activate License
-• Paste the license key in the form above
-• Click "Activate License Now"
-• Wait for confirmation
-
-TROUBLESHOOTING:
-• Make sure you're using the key on the same machine where it was generated
-• Check that Python is installed on your system
-• Ensure you copied the complete license key
-• Contact support if issues persist
-
-Your Machine ID: ${document.querySelector('.font-mono').textContent.trim()}
-
-Need more help? Check the README_LICENSE.md file in the SchoolManagement folder.`;
-    
-    alert(helpText);
+    const helpWindow = window.open('', '_blank', 'width=700,height=800,scrollbars=yes,resizable=yes');
+    helpWindow.document.write(`
+        <html>
+        <head>
+            <title>Complete License Activation Guide</title>
+            <style>
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                    padding: 0; margin: 0; line-height: 1.6; background: #f8fafc;
+                }
+                .header { 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    color: white; padding: 30px; text-align: center;
+                }
+                .content { padding: 30px; max-width: 600px; margin: 0 auto; }
+                .step { 
+                    background: white; padding: 20px; margin: 20px 0; 
+                    border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    border-left: 4px solid #3B82F6;
+                }
+                .code { 
+                    background: #1a202c; color: #68d391; padding: 15px; 
+                    border-radius: 8px; font-family: 'Courier New', monospace; 
+                    margin: 10px 0; overflow-x: auto;
+                }
+                .warning { 
+                    background: #fef3c7; border: 1px solid #f59e0b; 
+                    padding: 15px; margin: 15px 0; border-radius: 8px;
+                    border-left: 4px solid #f59e0b;
+                }
+                .success { 
+                    background: #d1fae5; border: 1px solid #10b981; 
+                    padding: 15px; margin: 15px 0; border-radius: 8px;
+                    border-left: 4px solid #10b981;
+                }
+                .btn { 
+                    background: #3B82F6; color: white; padding: 12px 24px; 
+                    border: none; border-radius: 8px; cursor: pointer; 
+                    font-size: 16px; margin: 10px 5px;
+                }
+                .btn:hover { background: #2563eb; }
+                h1, h2, h3 { color: #1f2937; }
+                .machine-info { 
+                    background: #f3f4f6; padding: 15px; border-radius: 8px; 
+                    border: 2px dashed #6b7280; margin: 15px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🔑 Complete License Activation Guide</h1>
+                <p>Step-by-step instructions for activating your School Management System</p>
+            </div>
+            
+            <div class="content">
+                <div class="machine-info">
+                    <h3>💻 Your Machine Information</h3>
+                    <strong>Machine ID:</strong> <code>{{ machine_id }}</code><br>
+                    <strong>Expected License Format:</strong> <code>SMS-XXXX-XXXX-XXXX</code>
+                </div>
+                
+                <div class="step">
+                    <h3>🚀 Step 1: Generate License Key</h3>
+                    <ol>
+                        <li>Press <kbd>Windows + E</kbd> to open File Explorer</li>
+                        <li>Navigate to the following directory:</li>
+                        <div class="code">D:\\Web Applications\\SchoolManagement\\</div>
+                        <li>Look for the file: <strong>generate_license.bat</strong></li>
+                        <li>Double-click on <strong>generate_license.bat</strong></li>
+                        <li>Wait for the license generator to complete (may take 10-30 seconds)</li>
+                        <li>Copy the generated license key (it will be displayed clearly)</li>
+                    </ol>
+                </div>
+                
+                <div class="step">
+                    <h3>⚙️ Step 2: Activate Your License</h3>
+                    <ol>
+                        <li>Return to the School Management System</li>
+                        <li>Paste the license key in the activation form</li>
+                        <li>Click <strong>"Activate License Now"</strong></li>
+                        <li>Wait for the success confirmation</li>
+                        <li>You'll be redirected to the dashboard automatically</li>
+                    </ol>
+                </div>
+                
+                <div class="success">
+                    <h3>✅ What Happens After Activation</h3>
+                    <ul>
+                        <li>✓ Immediate access to all 17 modules</li>
+                        <li>✓ All 26 AI/ML models activated</li>
+                        <li>✓ Unlimited students, teachers, and data</li>
+                        <li>✓ Advanced reporting and analytics</li>
+                        <li>✓ No expiration date - lifetime access</li>
+                    </ul>
+                </div>
+                
+                <div class="warning">
+                    <h3>⚠️ Troubleshooting Common Issues</h3>
+                    
+                    <p><strong>"License key does not match this machine"</strong></p>
+                    <p>→ You must generate the license key on the same machine where you want to use it</p>
+                    
+                    <p><strong>"Python is not installed"</strong></p>
+                    <p>→ Download and install Python 3.7+ from <a href="https://python.org" target="_blank">python.org</a></p>
+                    
+                    <p><strong>"Invalid license key format"</strong></p>
+                    <p>→ Ensure the format is exactly: SMS-XXXX-XXXX-XXXX (18 characters total)</p>
+                    
+                    <p><strong>"generate_license.bat not found"</strong></p>
+                    <p>→ Make sure you're in the correct directory and all files were extracted properly</p>
+                </div>
+                
+                <div class="step">
+                    <h3>📞 Additional Support</h3>
+                    <p>If you continue to experience issues:</p>
+                    <ul>
+                        <li>Check the <code>README_LICENSE.md</code> file in your SchoolManagement folder</li>
+                        <li>Ensure your antivirus isn't blocking the license generator</li>
+                        <li>Try running the license generator as Administrator</li>
+                        <li>Make sure Windows Defender isn't quarantining the files</li>
+                    </ul>
+                </div>
+                
+                <div style="text-align: center; margin: 40px 0;">
+                    <button class="btn" onclick="window.close()">Close Guide</button>
+                    <button class="btn" onclick="window.print()">Print Guide</button>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
 }
 </script>
 {% endblock %}

@@ -36,15 +36,10 @@ class DemoStatus(models.Model):
         return self.is_licensed or timezone.now() < self.demo_expires
     
     @classmethod
-    def get_machine_id(cls):
-        """Generate unique machine identifier"""
-        machine_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
-        return hashlib.sha256(machine_info.encode()).hexdigest()[:16]
-    
-    @classmethod
     def get_current_status(cls):
         """Get or create demo status for current machine"""
-        machine_id = cls.get_machine_id()
+        from .services import LicenseService
+        machine_id = LicenseService.get_machine_id()
         status, created = cls.objects.get_or_create(
             machine_id=machine_id,
             defaults={'demo_expires': timezone.now() + timedelta(days=7)}

@@ -10,19 +10,110 @@ class LicenseService:
     
     @classmethod
     def get_machine_id(cls):
-        """Generate stable unique machine identifier"""
+        """Generate stable unique machine identifier that never changes"""
         import uuid
+        import subprocess
+        import os
         
-        # Use stable hardware identifiers only
-        identifiers = [
-            platform.node(),           # Computer name
-            platform.machine(),        # CPU architecture  
-            str(uuid.getnode()),       # MAC address (most stable)
-        ]
+        # Check if we have a cached machine ID first
+        cache_file = os.path.join(os.path.dirname(__file__), '.machine_id')
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, 'r') as f:
+                    cached_id = f.read().strip()
+                    if len(cached_id) == 16:
+                        return cached_id
+            except:
+                pass
         
-        # Combine stable identifiers
+        # Generate stable hardware-based identifiers
+        identifiers = []
+        
+        try:
+            # 1. MAC Address (most stable)
+            mac = uuid.getnode()
+            identifiers.append(str(mac))
+            
+            # 2. CPU Architecture
+            identifiers.append(platform.machine())
+            
+            # 3. Windows: Use WMIC for motherboard serial
+            if platform.system() == 'Windows':
+                try:
+                    result = subprocess.run(['wmic', 'baseboard', 'get', 'serialnumber'], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        lines = result.stdout.strip().split('\n')
+                        if len(lines) > 1:
+                            serial = lines[1].strip()
+                            if serial and serial != 'SerialNumber':
+                                identifiers.append(serial)
+                except:
+                    pass
+                    
+                # Windows: CPU ID
+                try:
+                    result = subprocess.run(['wmic', 'cpu', 'get', 'processorid'], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        lines = result.stdout.strip().split('\n')
+                        if len(lines) > 1:
+                            cpu_id = lines[1].strip()
+                            if cpu_id and cpu_id != 'ProcessorId':
+                                identifiers.append(cpu_id)
+                except:
+                    pass
+            
+            # 4. Linux/Mac: Use hardware info
+            elif platform.system() in ['Linux', 'Darwin']:
+                try:
+                    # Try to get machine ID from /etc/machine-id or /var/lib/dbus/machine-id
+                    machine_id_files = ['/etc/machine-id', '/var/lib/dbus/machine-id']
+                    for file_path in machine_id_files:
+                        if os.path.exists(file_path):
+                            with open(file_path, 'r') as f:
+                                machine_id = f.read().strip()
+                                if machine_id:
+                                    identifiers.append(machine_id)
+                                    break
+                except:
+                    pass
+            
+            # 5. Fallback: Use system UUID if available
+            try:
+                if platform.system() == 'Windows':
+                    result = subprocess.run(['wmic', 'csproduct', 'get', 'uuid'], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        lines = result.stdout.strip().split('\n')
+                        if len(lines) > 1:
+                            system_uuid = lines[1].strip()
+                            if system_uuid and system_uuid != 'UUID':
+                                identifiers.append(system_uuid)
+            except:
+                pass
+        
+        except Exception:
+            # Ultimate fallback
+            identifiers = [str(uuid.getnode()), platform.machine()]
+        
+        # Ensure we have at least some identifiers
+        if not identifiers:
+            identifiers = [str(uuid.getnode()), 'fallback']
+        
+        # Combine all identifiers
         machine_info = '-'.join(filter(None, identifiers))
-        return hashlib.sha256(machine_info.encode()).hexdigest()[:16]
+        machine_id = hashlib.sha256(machine_info.encode()).hexdigest()[:16]
+        
+        # Cache the machine ID for future use
+        try:
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, 'w') as f:
+                f.write(machine_id)
+        except:
+            pass
+        
+        return machine_id
     
     @classmethod
     def generate_license_key(cls, machine_id=None):

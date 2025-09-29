@@ -213,12 +213,16 @@
                 <div class="p-6 space-y-4">
                     <div class="bg-gray-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-600">Machine ID</span>
+                            <span class="text-sm font-medium text-gray-600">Stable Machine ID</span>
                             <button onclick="copyToClipboard('{{ machine_id }}')" class="text-blue-600 hover:text-blue-800 transition-colors">
                                 <i data-lucide="copy" class="w-4 h-4"></i>
                             </button>
                         </div>
                         <div class="font-mono text-sm text-gray-800 bg-white px-3 py-2 rounded border break-all">{{ machine_id }}</div>
+                        <div class="text-xs text-green-600 mt-1 flex items-center">
+                            <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i>
+                            Hardware-based stable ID (never changes)
+                        </div>
                     </div>
                     
                     {% if is_licensed %}
@@ -430,12 +434,21 @@ function initializeLucideIcons() {
 // Start initialization
 initializeLucideIcons();
 
+// Debug: Check if form exists
+console.log('License form found:', document.getElementById('licenseForm') ? 'Yes' : 'No');
+console.log('License key input found:', document.getElementById('licenseKey') ? 'Yes' : 'No');
+console.log('Activate button found:', document.getElementById('activateBtn') ? 'Yes' : 'No');
+console.log('CSRF token found:', document.querySelector('[name=csrfmiddlewaretoken]') ? 'Yes' : 'No');
+
 // License activation form
 document.getElementById('licenseForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
+    console.log('🔑 License activation form submitted');
     
     const licenseKey = document.getElementById('licenseKey').value.trim();
     const activateBtn = document.getElementById('activateBtn');
+    
+    console.log('License key entered:', licenseKey);
     
     if (!licenseKey) {
         showMessage('Please enter a license key', 'error');
@@ -449,38 +462,58 @@ document.getElementById('licenseForm')?.addEventListener('submit', async functio
         return;
     }
     
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    console.log('CSRF token found:', csrfToken ? 'Yes' : 'No');
+    
+    if (!csrfToken) {
+        showMessage('Security token missing. Please refresh the page.', 'error');
+        return;
+    }
+    
     // Show loading state
     activateBtn.disabled = true;
     activateBtn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 inline mr-2 animate-spin"></i>Activating...';
     
     try {
+        console.log('Sending activation request...');
         const response = await fetch('{% url "demo:activate" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 license_key: licenseKey.toUpperCase()
             })
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('Activation result:', result);
         
         if (result.success) {
-            showMessage(result.message, 'success');
+            showMessage(result.message || 'License activated successfully!', 'success');
             setTimeout(() => {
+                console.log('Reloading page...');
                 window.location.reload();
             }, 2000);
         } else {
-            showMessage(result.message, 'error');
+            showMessage(result.message || 'Activation failed', 'error');
         }
         
     } catch (error) {
-        showMessage('Network error. Please try again.', 'error');
+        console.error('Activation error:', error);
+        showMessage(`Network error: ${error.message}`, 'error');
     } finally {
         activateBtn.disabled = false;
-        activateBtn.innerHTML = '<i data-lucide="unlock" class="w-5 h-5 inline mr-2"></i>Activate License';
+        activateBtn.innerHTML = '<i data-lucide="unlock" class="w-5 h-5 inline mr-2"></i>Activate License Now';
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
@@ -523,7 +556,15 @@ document.getElementById('licenseKey')?.addEventListener('input', function(e) {
 
 // Show message function
 function showMessage(message, type) {
+    console.log(`📢 Showing message: ${type} - ${message}`);
+    
     const container = document.getElementById('messageContainer');
+    if (!container) {
+        console.error('Message container not found!');
+        alert(`${type.toUpperCase()}: ${message}`);
+        return;
+    }
+    
     const messageDiv = document.createElement('div');
     
     const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
@@ -550,7 +591,9 @@ function showMessage(message, type) {
     setTimeout(() => {
         messageDiv.classList.add('translate-x-full');
         setTimeout(() => {
-            container.removeChild(messageDiv);
+            if (container.contains(messageDiv)) {
+                container.removeChild(messageDiv);
+            }
         }, 300);
     }, 5000);
 }
@@ -581,7 +624,7 @@ function showPurchaseInfo() {
 📞 Phone: +1-XXX-XXX-XXXX
 
 📋 What You Need to Provide:
-• Your Machine ID: {{ machine_id }}
+• Your Stable Machine ID: {{ machine_id }}
 • School/Organization Name
 • Contact Information
 • Preferred Payment Method
@@ -593,15 +636,16 @@ function showPurchaseInfo() {
 • Free updates for 1 year
 
 ⚠️ Important:
-• License keys are generated after payment confirmation
+• License keys are machine-specific and stable
 • Each machine requires a separate license
 • Keys are non-transferable between machines
+• Machine ID is hardware-based and never changes
 
-Click OK to copy your Machine ID for the purchase request...`;
+Click OK to copy your Stable Machine ID for the purchase request...`;
     
     if (confirm(purchaseText)) {
         copyToClipboard('{{ machine_id }}');
-        showMessage('Machine ID copied! Include this in your purchase request.', 'success');
+        showMessage('Stable Machine ID copied! Include this in your purchase request.', 'success');
     }
 }
 
@@ -666,8 +710,9 @@ function showDetailedHelp() {
             </div>
             
             <div class="code">
-                <strong>Your Machine ID:</strong> {{ machine_id }}<br>
-                <strong>Expected License Format:</strong> SMS-XXXX-XXXX-XXXX
+                <strong>Your Stable Machine ID:</strong> {{ machine_id }}<br>
+                <strong>Expected License Format:</strong> SMS-XXXX-XXXX-XXXX<br>
+                <strong>Note:</strong> Machine ID is hardware-based and stable
             </div>
             
             <p style="text-align: center; margin-top: 30px;">

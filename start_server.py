@@ -293,36 +293,23 @@ class SchoolServerManager:
             if status.is_licensed:
                 print(f"{Colors.GREEN}✅ Licensed Version - Full Access{Colors.END}")
                 print(f"{Colors.CYAN}   Activated: {status.activated_at.strftime('%Y-%m-%d') if status.activated_at else 'N/A'}{Colors.END}")
+                return True
             elif status.is_active:
                 print(f"{Colors.YELLOW}⏰ Demo Version - {status.days_remaining} days remaining{Colors.END}")
                 if status.days_remaining <= 2:
-                    print(f"{Colors.RED}⚠️  Demo expires soon! Generate license key to continue.{Colors.END}")
+                    print(f"{Colors.RED}⚠️  Demo expires soon!{Colors.END}")
+                return True
             else:
-                print(f"{Colors.RED}❌ Demo Expired - License Required{Colors.END}")
-                self.show_license_activation_help()
-                return False
+                print(f"{Colors.RED}❌ Demo Expired - Activation Required{Colors.END}")
+                print(f"{Colors.YELLOW}   Visit: /demo/expired/ to activate{Colors.END}")
+                return True  # Allow server to start for activation
                 
         except Exception as e:
             print(f"{Colors.YELLOW}⚠️  Could not check license status: {e}{Colors.END}")
             
         return True
     
-    def show_license_activation_help(self):
-        """Show license activation instructions"""
-        print(f"\n{Colors.BOLD}{Colors.BLUE}🔑 License Activation Required{Colors.END}")
-        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
-        print(f"{Colors.YELLOW}To continue using the School Management System:{Colors.END}")
-        print(f"\n{Colors.GREEN}1. Generate License Key:{Colors.END}")
-        print(f"   📁 Navigate to: D:\\Web Applications\\SchoolManagement\\")
-        print(f"   🖱️  Double-click: generate_license.bat")
-        print(f"\n{Colors.GREEN}2. Activate License:{Colors.END}")
-        print(f"   🌐 Visit: http://127.0.0.1:8000/demo/status/")
-        print(f"   🔑 Enter your license key")
-        print(f"\n{Colors.GREEN}3. Restart Server:{Colors.END}")
-        print(f"   🔄 Run this script again")
-        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
-        
-        input(f"\n{Colors.YELLOW}Press Enter to continue anyway (limited functionality)...{Colors.END}")
+
     
     def run(self):
         """Main execution method"""
@@ -330,8 +317,7 @@ class SchoolServerManager:
             self.print_banner()
             
             # Check demo status first
-            if not self.check_demo_status():
-                print(f"{Colors.YELLOW}⚠️  Starting with limited functionality...{Colors.END}")
+            self.check_demo_status()
             
             print(f"{Colors.YELLOW}🔍 Detecting network interfaces...{Colors.END}")
             interfaces = self.get_network_interfaces()
@@ -376,11 +362,14 @@ class SchoolServerManager:
             from demo.services import LicenseService
             status = LicenseService.get_demo_status()
             
-            if not status.is_licensed and status.is_active:
-                print(f"\n{Colors.BOLD}{Colors.YELLOW}💡 Demo Mode Reminder:{Colors.END}")
-                print(f"{Colors.YELLOW}   • {status.days_remaining} days remaining{Colors.END}")
-                print(f"{Colors.YELLOW}   • Some features are limited{Colors.END}")
-                print(f"{Colors.YELLOW}   • Activate at: /demo/status/{Colors.END}")
+            if not status.is_licensed:
+                if status.is_active:
+                    print(f"\n{Colors.BOLD}{Colors.YELLOW}💡 Demo Mode:{Colors.END}")
+                    print(f"{Colors.YELLOW}   • {status.days_remaining} days remaining{Colors.END}")
+                    print(f"{Colors.YELLOW}   • Activate at: /demo/status/{Colors.END}")
+                else:
+                    print(f"\n{Colors.BOLD}{Colors.RED}🔑 Activation Required:{Colors.END}")
+                    print(f"{Colors.RED}   • Visit: /demo/expired/ to activate{Colors.END}")
                 
         except:
             pass

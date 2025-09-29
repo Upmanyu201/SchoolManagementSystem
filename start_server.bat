@@ -3,18 +3,6 @@ chcp 65001 >nul
 title School Management System - Smart Launcher
 color 0B
 
-echo.
-echo +==============================================================+
-echo ^|                                                              ^|
-echo ^|    SCHOOL MANAGEMENT SYSTEM - SMART LAUNCHER                ^|
-echo ^|                                                              ^|
-echo ^|  * Auto Network Detection  * Mobile Hotspot Support        ^|
-echo ^|  * Browser Auto-Launch     * Real-time Logs                ^|
-echo ^|  * SSL Support             * One-Click Startup              ^|
-echo ^|                                                              ^|
-echo +==============================================================+
-echo.
-
 REM Check if virtual environment exists
 if not exist "venv\Scripts\activate.bat" (
     echo [ERROR] Virtual environment not found!
@@ -40,6 +28,10 @@ python -c "import psutil" 2>nul || (
     echo [INFO] Installing psutil...
     pip install psutil
 )
+
+REM Check license status
+echo [INFO] Checking application status...
+python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_management.settings'); import django; django.setup(); from demo.services import LicenseService; status = LicenseService.get_demo_status(); print('Licensed Version' if status.is_licensed else f'Demo: {status.days_remaining} days' if status.is_active else 'Activation Required')" 2>nul
 
 REM Run the Python startup script
 echo [INFO] Starting School Management System...

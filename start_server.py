@@ -33,23 +33,35 @@ class SchoolServerManager:
         self.server_urls = []
         self.selected_ip = None
         self.port = 8000
-        self.ssl_port = 9000
-        self.use_ssl = False
+        self.use_ssl = False  # Always HTTP for offline use
+        self.production_mode = os.getenv('PRODUCTION', 'false').lower() == 'true'
         
     def print_banner(self):
         """Display beautiful startup banner"""
+        mode_text = "PRODUCTION MODE" if self.production_mode else "DEVELOPMENT MODE"
+        mode_color = Colors.RED if self.production_mode else Colors.GREEN
+        
         banner = f"""
 {Colors.CYAN}╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
 ║  {Colors.BOLD}🎓 SCHOOL MANAGEMENT SYSTEM - SMART LAUNCHER{Colors.END}{Colors.CYAN}              ║
+║  {mode_color}{Colors.BOLD}🚀 {mode_text}{Colors.END}{Colors.CYAN}                                        ║
 ║                                                              ║
 ║  {Colors.GREEN}✨ Auto Network Detection  📱 Mobile Hotspot Support{Colors.END}{Colors.CYAN}      ║
 ║  {Colors.GREEN}🌐 Browser Auto-Launch     📊 Real-time Logs{Colors.END}{Colors.CYAN}             ║
-║  {Colors.GREEN}🔒 SSL Support             🔑 License Management{Colors.END}{Colors.CYAN}          ║
+║  {Colors.GREEN}📶 HTTP Only (Offline)     🔑 License Management{Colors.END}{Colors.CYAN}          ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝{Colors.END}
 """
         print(banner)
+        
+        if self.production_mode:
+            print(f"{Colors.RED}{Colors.BOLD}⚠️  PRODUCTION MODE ACTIVE{Colors.END}")
+            print(f"{Colors.YELLOW}   • DEBUG disabled for security{Colors.END}")
+            print(f"{Colors.YELLOW}   • Static files served efficiently{Colors.END}")
+            print(f"{Colors.YELLOW}   • HTTP-only for offline use{Colors.END}")
+        else:
+            print(f"{Colors.GREEN}📶 HTTP-Only Mode - Perfect for Offline Use{Colors.END}")
         
         # Check demo status
         self.check_demo_status()
@@ -137,31 +149,18 @@ class SchoolServerManager:
         except:
             return False
     
-    def check_ssl_certificates(self):
-        """Check if SSL certificates exist"""
-        cert_paths = ['certs/cert.pem', 'certs/key.pem', 'certs/devserver.crt', 'certs/devserver.key']
-        return any(os.path.exists(cert_path) for cert_path in cert_paths)
-    
-    def setup_ssl_option(self):
-        """Ask user about SSL preference"""
-        if self.check_ssl_certificates():
-            print(f"\n{Colors.GREEN}🔒 SSL certificates detected!{Colors.END}")
-            while True:
-                choice = input(f"{Colors.YELLOW}🔐 Use HTTPS? (y/n): {Colors.END}").lower().strip()
-                if choice in ['y', 'yes']:
-                    self.use_ssl = True
-                    self.port = self.ssl_port
-                    break
-                elif choice in ['n', 'no']:
-                    break
-                else:
-                    print(f"{Colors.RED}❌ Please enter 'y' or 'n'{Colors.END}")
-        else:
-            print(f"{Colors.YELLOW}⚠️  No SSL certificates found - using HTTP{Colors.END}")
+    def setup_http_mode(self):
+        """Configure HTTP-only mode for offline use"""
+        print(f"\n{Colors.GREEN}📶 HTTP Mode - Optimized for Offline Use{Colors.END}")
+        print(f"{Colors.CYAN}   • No SSL complexity{Colors.END}")
+        print(f"{Colors.CYAN}   • Faster startup{Colors.END}")
+        print(f"{Colors.CYAN}   • Perfect for local networks{Colors.END}")
+        self.use_ssl = False
+        self.port = 8000
     
     def generate_server_urls(self):
         """Generate all possible server URLs"""
-        protocol = 'https' if self.use_ssl else 'http'
+        protocol = 'http'  # Always HTTP for offline use
         self.server_urls = [
             f"{protocol}://{self.selected_ip}:{self.port}/",
             f"{protocol}://localhost:{self.port}/",
@@ -170,7 +169,9 @@ class SchoolServerManager:
     
     def display_server_info(self):
         """Display server information and URLs"""
-        protocol = 'https' if self.use_ssl else 'http'
+        protocol = 'http'  # Always HTTP for offline use
+        mode_text = "PRODUCTION" if self.production_mode else "DEVELOPMENT"
+        mode_color = Colors.RED if self.production_mode else Colors.GREEN
         
         print(f"\n{Colors.BOLD}{Colors.GREEN}🚀 Server Starting...{Colors.END}")
         print(f"{Colors.CYAN}{'='*60}{Colors.END}")
@@ -178,6 +179,7 @@ class SchoolServerManager:
         print(f"   🌐 Protocol: {Colors.BOLD}{protocol.upper()}{Colors.END}")
         print(f"   📡 IP Address: {Colors.BOLD}{self.selected_ip}{Colors.END}")
         print(f"   🔌 Port: {Colors.BOLD}{self.port}{Colors.END}")
+        print(f"   🚀 Mode: {mode_color}{Colors.BOLD}{mode_text}{Colors.END}")
         print(f"   🕐 Started: {Colors.BOLD}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
         
         print(f"\n{Colors.BOLD}🔗 Access URLs:{Colors.END}")
@@ -191,19 +193,27 @@ class SchoolServerManager:
         print(f"{Colors.CYAN}{'='*60}{Colors.END}")
     
     def start_django_server(self):
-        """Start the Django development server"""
+        """Start the Django server (development or production mode)"""
         try:
-            cmd = [sys.executable, 'manage.py', 'runserver', f'{self.selected_ip}:{self.port}']
+            # Set environment variables for production mode
+            env = os.environ.copy()
+            if self.production_mode:
+                env['DJANGO_SETTINGS_MODULE'] = 'school_management.settings'
+                env['DEBUG'] = 'False'
+                env['PRODUCTION'] = 'true'
+            else:
+                env['DJANGO_SETTINGS_MODULE'] = 'school_management.settings'
+                env['DEBUG'] = 'True'
             
-            if self.use_ssl:
-                cmd.extend(['--cert-file', 'certs/cert.pem', '--key-file', 'certs/key.pem'])
+            cmd = [sys.executable, 'manage.py', 'runserver', f'{self.selected_ip}:{self.port}']
             
             self.server_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
-                bufsize=1
+                bufsize=1,
+                env=env
             )
             
             return True
@@ -326,7 +336,7 @@ class SchoolServerManager:
             if not self.selected_ip:
                 return
             
-            self.setup_ssl_option()
+            self.setup_http_mode()
             self.generate_server_urls()
             self.display_server_info()
             self.show_license_reminder()

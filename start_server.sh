@@ -21,7 +21,7 @@ echo -e "║  ${BOLD}🎓 SCHOOL MANAGEMENT SYSTEM - SMART LAUNCHER${NC}${CYAN} 
 echo -e "║                                                              ║"
 echo -e "║  ${GREEN}✨ Auto Network Detection  📱 Mobile Hotspot Support${NC}${CYAN}      ║"
 echo -e "║  ${GREEN}🌐 Browser Auto-Launch     📊 Real-time Logs${NC}${CYAN}             ║"
-echo -e "║  ${GREEN}🔒 SSL Support             🚀 One-Click Startup${NC}${CYAN}           ║"
+echo -e "║  ${GREEN}📶 HTTP Only (Offline)     🚀 One-Click Startup${NC}${CYAN}           ║"
 echo -e "║                                                              ║"
 echo -e "╚══════════════════════════════════════════════════════════════╝${NC}"
 echo
@@ -58,6 +58,22 @@ python3 -c "import psutil" 2>/dev/null || {
     echo -e "${YELLOW}📦 Installing psutil...${NC}"
     pip install psutil
 }
+
+# Check for production mode argument
+PRODUCTION_MODE="false"
+if [ "$1" = "--production" ] || [ "$1" = "-p" ]; then
+    PRODUCTION_MODE="true"
+fi
+
+# Set environment variables for production
+if [ "$PRODUCTION_MODE" = "true" ]; then
+    echo -e "${RED}🚀 Starting in PRODUCTION mode...${NC}"
+    export PRODUCTION=true
+    export DEBUG=False
+else
+    echo -e "${GREEN}🚀 Starting in DEVELOPMENT mode...${NC}"
+    export PRODUCTION=false
+fi
 
 # Make the Python script executable
 chmod +x start_server.py

@@ -28,29 +28,23 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fixed-key-for-development-
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = ['*']#os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
-# Security Headers
+# Security Headers - HTTP Only for Offline Use
 if not DEBUG:
-    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() == 'true'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = False  # Disabled for offline HTTP use
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
 
-# HTTPS Settings
-USE_HTTPS = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# HTTP Settings for Offline Use
+USE_HTTPS = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = [
-    'https://localhost:9000',
-    'https://127.0.0.1:9000',
-    'http://localhost:9000',
-    'http://127.0.0.1:9000',
-    "http://192.168.1.106:9000",
-    'https://*.ngrok.io',
-    'https://*.ngrok-free.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://192.168.*:8000',
+    'http://10.*:8000',
+    'http://172.*:8000',
 ]
 
 # Webhook CSRF exemption
@@ -424,12 +418,12 @@ REST_FRAMEWORK = {
 }
 
 
-# Additional Security Settings
+# Additional Security Settings - HTTP Only
 if not DEBUG:
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = False  # HTTP only for offline use
+    CSRF_COOKIE_SECURE = False     # HTTP only for offline use
 
 
 # Backup System Configuration (Added by backup_security_fixes.py)

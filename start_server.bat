@@ -29,6 +29,21 @@ python -c "import psutil" 2>nul || (
     pip install psutil
 )
 
+REM Check for production mode argument
+set PRODUCTION_MODE=false
+if "%1"=="--production" set PRODUCTION_MODE=true
+if "%1"=="-p" set PRODUCTION_MODE=true
+
+REM Set environment variables for production
+if "%PRODUCTION_MODE%"=="true" (
+    echo [INFO] Starting in PRODUCTION mode...
+    set PRODUCTION=true
+    set DEBUG=False
+) else (
+    echo [INFO] Starting in DEVELOPMENT mode...
+    set PRODUCTION=false
+)
+
 REM Check license status
 echo [INFO] Checking application status...
 python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_management.settings'); import django; django.setup(); from demo.services import LicenseService; status = LicenseService.get_demo_status(); print('Licensed Version' if status.is_licensed else f'Demo: {status.days_remaining} days' if status.is_active else 'Activation Required')" 2>nul

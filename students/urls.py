@@ -13,6 +13,8 @@ from .coordination_test import coordination_test, coordination_api
 app_name = 'students'
 
 urlpatterns = [
+    # API URLs
+    path('api/', include('students.api.urls')),
     # Main student views
     path('', views.student_list, name='student_list'),
     path('add/', views.add_student, name='add_student'),
@@ -36,6 +38,7 @@ urlpatterns = [
     path('api/live-dashboard/<str:admission_number>/', dashboard_api.student_live_dashboard_api, name='student_live_dashboard_api'),
     path('api/timeline/<str:admission_number>/', student_dashboard_views.student_timeline_api, name='student_timeline_api'),
     path('api/payment/<str:admission_number>/', student_dashboard_views.student_payment_api, name='student_payment_api'),
+
     
     # Legacy API Endpoints (for backward compatibility)
     path('api/students/<str:admission_number>/payments/', api_views.student_payments_api, name='student_payments_api'),

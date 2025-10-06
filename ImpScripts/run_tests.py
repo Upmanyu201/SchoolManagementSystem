@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🧪 System Test Runner
+[TEST] System Test Runner
 Comprehensive testing suite for School Management System
 """
 
@@ -41,12 +41,12 @@ class SystemTester:
         return str(venv_python) if venv_python.exists() else sys.executable
     
     def print_header(self):
-        print(f"{Colors.CYAN}╔══════════════════════════════════════════════════════════════╗")
-        print(f"║                                                              ║")
-        print(f"║  🧪 SYSTEM TEST RUNNER                                      ║")
-        print(f"║  📊 Comprehensive School Management System Testing          ║")
-        print(f"║                                                              ║")
-        print(f"╚══════════════════════════════════════════════════════════════╝{Colors.END}")
+        print(f"{Colors.CYAN}================================================================")
+        print(f"                                                                ")
+        print(f"   [TEST] SYSTEM TEST RUNNER                                       ")
+        print(f"   [HEALTH] Comprehensive School Management System Testing           ")
+        print(f"                                                                ")
+        print(f"================================================================{Colors.END}")
     
     def log_test_result(self, test_name, passed, message=""):
         """Log test result"""
@@ -61,16 +61,16 @@ class SystemTester:
         
         if passed:
             self.passed_tests += 1
-            print(f"   {color}✅ {test_name}: {status}{Colors.END}")
+            print(f"   {color}[OK] {test_name}: {status}{Colors.END}")
         else:
             self.failed_tests += 1
-            print(f"   {color}❌ {test_name}: {status}{Colors.END}")
+            print(f"   {color}[ERROR] {test_name}: {status}{Colors.END}")
             if message:
-                print(f"      {Colors.YELLOW}💡 {message}{Colors.END}")
+                print(f"      {Colors.YELLOW}[TIP] {message}{Colors.END}")
     
     def test_python_environment(self):
         """Test Python environment"""
-        print(f"\n{Colors.BOLD}🐍 Testing Python Environment{Colors.END}")
+        print(f"\n{Colors.BOLD}[PYTHON] Testing Python Environment{Colors.END}")
         
         try:
             # Test Python version
@@ -101,7 +101,7 @@ class SystemTester:
     
     def test_virtual_environment(self):
         """Test virtual environment"""
-        print(f"\n{Colors.BOLD}🌐 Testing Virtual Environment{Colors.END}")
+        print(f"\n{Colors.BOLD}[NETWORK] Testing Virtual Environment{Colors.END}")
         
         try:
             # Check if venv exists
@@ -125,7 +125,7 @@ class SystemTester:
     
     def test_django_installation(self):
         """Test Django installation and configuration"""
-        print(f"\n{Colors.BOLD}🎯 Testing Django Installation{Colors.END}")
+        print(f"\n{Colors.BOLD}[TARGET] Testing Django Installation{Colors.END}")
         
         try:
             # Test Django import
@@ -160,7 +160,7 @@ class SystemTester:
     
     def test_database_connectivity(self):
         """Test database connectivity and structure"""
-        print(f"\n{Colors.BOLD}🗄️  Testing Database Connectivity{Colors.END}")
+        print(f"\n{Colors.BOLD}[DATABASE]  Testing Database Connectivity{Colors.END}")
         
         try:
             # Check if database file exists
@@ -207,7 +207,7 @@ class SystemTester:
     
     def test_static_files(self):
         """Test static files configuration"""
-        print(f"\n{Colors.BOLD}📁 Testing Static Files{Colors.END}")
+        print(f"\n{Colors.BOLD}[FOLDER] Testing Static Files{Colors.END}")
         
         try:
             # Check static directories
@@ -244,7 +244,7 @@ class SystemTester:
     
     def test_dependencies(self):
         """Test critical dependencies"""
-        print(f"\n{Colors.BOLD}📦 Testing Dependencies{Colors.END}")
+        print(f"\n{Colors.BOLD}[PACKAGE] Testing Dependencies{Colors.END}")
         
         critical_packages = {
             'django': 'Django framework',
@@ -274,7 +274,7 @@ class SystemTester:
     
     def test_server_startup(self):
         """Test Django development server startup"""
-        print(f"\n{Colors.BOLD}🚀 Testing Server Startup{Colors.END}")
+        print(f"\n{Colors.BOLD}[START] Testing Server Startup{Colors.END}")
         
         try:
             # Find available port
@@ -334,7 +334,7 @@ class SystemTester:
     
     def test_ml_integration(self):
         """Test ML integration if available"""
-        print(f"\n{Colors.BOLD}🤖 Testing ML Integration{Colors.END}")
+        print(f"\n{Colors.BOLD}[ROBOT] Testing ML Integration{Colors.END}")
         
         try:
             # Check if ML models directory exists
@@ -377,7 +377,7 @@ class SystemTester:
     
     def generate_test_report(self):
         """Generate final test report"""
-        print(f"\n{Colors.BOLD}📊 TEST REPORT{Colors.END}")
+        print(f"\n{Colors.BOLD}[HEALTH] TEST REPORT{Colors.END}")
         print("=" * 60)
         
         total_tests = self.passed_tests + self.failed_tests
@@ -389,19 +389,19 @@ class SystemTester:
         print(f"Pass Rate: {Colors.BOLD}{pass_rate:.1f}%{Colors.END}")
         
         if self.failed_tests > 0:
-            print(f"\n{Colors.RED}❌ FAILED TESTS:{Colors.END}")
+            print(f"\n{Colors.RED}[ERROR] FAILED TESTS:{Colors.END}")
             for result in self.test_results:
                 if not result['passed']:
                     print(f"   • {result['name']}: {result['message']}")
         
         if pass_rate >= 80:
-            print(f"\n{Colors.GREEN}🎉 EXCELLENT! System is ready for production{Colors.END}")
+            print(f"\n{Colors.GREEN}[SUCCESS] EXCELLENT! System is ready for production{Colors.END}")
             return True
         elif pass_rate >= 60:
-            print(f"\n{Colors.YELLOW}⚠️  GOOD! Minor issues detected{Colors.END}")
+            print(f"\n{Colors.YELLOW}[WARN]  GOOD! Minor issues detected{Colors.END}")
             return True
         else:
-            print(f"\n{Colors.RED}🚫 CRITICAL! Major issues need attention{Colors.END}")
+            print(f"\n{Colors.RED}[BLOCKED] CRITICAL! Major issues need attention{Colors.END}")
             return False
     
     def run_all_tests(self):
@@ -436,17 +436,17 @@ def main():
         success = tester.run_all_tests()
         
         if success:
-            print(f"\n{Colors.GREEN}✅ System testing completed successfully!{Colors.END}")
+            print(f"\n{Colors.GREEN}[OK] System testing completed successfully!{Colors.END}")
             sys.exit(0)
         else:
-            print(f"\n{Colors.YELLOW}⚠️  System testing completed with issues{Colors.END}")
+            print(f"\n{Colors.YELLOW}[WARN]  System testing completed with issues{Colors.END}")
             sys.exit(1)
             
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}⚠️  Testing cancelled by user{Colors.END}")
+        print(f"\n{Colors.YELLOW}[WARN]  Testing cancelled by user{Colors.END}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{Colors.RED}❌ Testing error: {e}{Colors.END}")
+        print(f"\n{Colors.RED}[ERROR] Testing error: {e}{Colors.END}")
         sys.exit(1)
 
 if __name__ == "__main__":

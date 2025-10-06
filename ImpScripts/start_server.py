@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🎓 School Management System - Smart Startup Script
+[SCHOOL] School Management System - Smart Startup Script
 Auto-detects network, launches server, and opens browser
 """
 
@@ -47,26 +47,26 @@ class SchoolServerManager:
         mode_color = Colors.RED if self.production_mode else Colors.GREEN
         
         banner = f"""
-{Colors.CYAN}╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║  {Colors.BOLD}🎓 SCHOOL MANAGEMENT SYSTEM - SMART LAUNCHER{Colors.END}{Colors.CYAN}              ║
-║  {mode_color}{Colors.BOLD}🚀 {mode_text}{Colors.END}{Colors.CYAN}                                        ║
-║                                                              ║
-║  {Colors.GREEN}✨ Auto Network Detection  📱 Mobile Hotspot Support{Colors.END}{Colors.CYAN}      ║
-║  {Colors.GREEN}🌐 Browser Auto-Launch     📊 Real-time Logs{Colors.END}{Colors.CYAN}             ║
-║  {Colors.GREEN}📶 HTTP Only (Offline)     🔑 License Management{Colors.END}{Colors.CYAN}          ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝{Colors.END}
+{Colors.CYAN}================================================================
+                                                                
+   {Colors.BOLD}[SCHOOL] SCHOOL MANAGEMENT SYSTEM - SMART LAUNCHER{Colors.END}{Colors.CYAN}               
+   {mode_color}{Colors.BOLD}[START] {mode_text}{Colors.END}{Colors.CYAN}                                         
+                                                                
+   {Colors.GREEN}[EMOJI] Auto Network Detection  [EMOJI] Mobile Hotspot Support{Colors.END}{Colors.CYAN}       
+   {Colors.GREEN}[NETWORK] Browser Auto-Launch     [HEALTH] Real-time Logs{Colors.END}{Colors.CYAN}              
+   {Colors.GREEN}[EMOJI] HTTP Only (Offline)     [EMOJI] License Management{Colors.END}{Colors.CYAN}           
+                                                                
+================================================================{Colors.END}
 """
         print(banner)
         
         if self.production_mode:
-            print(f"{Colors.RED}{Colors.BOLD}⚠️  PRODUCTION MODE ACTIVE{Colors.END}")
+            print(f"{Colors.RED}{Colors.BOLD}[WARN]  PRODUCTION MODE ACTIVE{Colors.END}")
             print(f"{Colors.YELLOW}   • DEBUG disabled for security{Colors.END}")
             print(f"{Colors.YELLOW}   • Static files served efficiently{Colors.END}")
             print(f"{Colors.YELLOW}   • HTTP-only for offline use{Colors.END}")
         else:
-            print(f"{Colors.GREEN}📶 HTTP-Only Mode - Perfect for Offline Use{Colors.END}")
+            print(f"{Colors.GREEN}[EMOJI] HTTP-Only Mode - Perfect for Offline Use{Colors.END}")
         
         # Check demo status
         self.check_demo_status()
@@ -89,7 +89,7 @@ class SchoolServerManager:
                                 'netmask': address.netmask
                             })
         except Exception as e:
-            print(f"{Colors.RED}❌ Error detecting network interfaces: {e}{Colors.END}")
+            print(f"{Colors.RED}[ERROR] Error detecting network interfaces: {e}{Colors.END}")
             
         return interfaces
     
@@ -99,37 +99,37 @@ class SchoolServerManager:
         
         if 'wi-fi' in name_lower or 'wireless' in name_lower or 'wlan' in name_lower:
             if ip.startswith('192.168.43.') or ip.startswith('192.168.137.'):
-                return '📱 Mobile Hotspot'
-            return '📶 WiFi'
+                return '[EMOJI] Mobile Hotspot'
+            return '[EMOJI] WiFi'
         elif 'ethernet' in name_lower or 'local' in name_lower or 'eth' in name_lower:
-            return '🔌 Ethernet'
+            return '[EMOJI] Ethernet'
         elif 'bluetooth' in name_lower:
-            return '🔵 Bluetooth'
+            return '[EMOJI] Bluetooth'
         else:
-            return '🌐 Network'
+            return '[NETWORK] Network'
     
     def display_network_options(self, interfaces):
         """Display available network interfaces for selection"""
-        print(f"\n{Colors.BOLD}{Colors.BLUE}🌐 Available Network Interfaces:{Colors.END}")
+        print(f"\n{Colors.BOLD}{Colors.BLUE}[NETWORK] Available Network Interfaces:{Colors.END}")
         print(f"{Colors.CYAN}{'='*60}{Colors.END}")
         
         if not interfaces:
-            print(f"{Colors.RED}❌ No network interfaces found!{Colors.END}")
-            print(f"{Colors.YELLOW}💡 Make sure you're connected to a network{Colors.END}")
+            print(f"{Colors.RED}[ERROR] No network interfaces found!{Colors.END}")
+            print(f"{Colors.YELLOW}[TIP] Make sure you're connected to a network{Colors.END}")
             return None
             
         # Always add localhost option
-        print(f"{Colors.GREEN}0.{Colors.END} 🏠 Localhost Only (127.0.0.1)")
+        print(f"{Colors.GREEN}0.{Colors.END} [EMOJI] Localhost Only (127.0.0.1)")
         
         for i, interface in enumerate(interfaces, 1):
-            status_icon = "🟢" if self.test_port_availability(interface['ip']) else "🔴"
+            status_icon = "🟢" if self.test_port_availability(interface['ip']) else "[EMOJI]"
             print(f"{Colors.GREEN}{i}.{Colors.END} {interface['type']} - {Colors.BOLD}{interface['ip']}{Colors.END} ({interface['name']}) {status_icon}")
         
         print(f"{Colors.CYAN}{'='*60}{Colors.END}")
         
         while True:
             try:
-                choice = input(f"\n{Colors.YELLOW}🎯 Select network interface (0-{len(interfaces)}): {Colors.END}")
+                choice = input(f"\n{Colors.YELLOW}[TARGET] Select network interface (0-{len(interfaces)}): {Colors.END}")
                 choice = int(choice)
                 
                 if choice == 0:
@@ -137,11 +137,11 @@ class SchoolServerManager:
                 elif 1 <= choice <= len(interfaces):
                     return interfaces[choice - 1]['ip']
                 else:
-                    print(f"{Colors.RED}❌ Invalid choice! Please select 0-{len(interfaces)}{Colors.END}")
+                    print(f"{Colors.RED}[ERROR] Invalid choice! Please select 0-{len(interfaces)}{Colors.END}")
             except ValueError:
-                print(f"{Colors.RED}❌ Please enter a valid number!{Colors.END}")
+                print(f"{Colors.RED}[ERROR] Please enter a valid number!{Colors.END}")
             except KeyboardInterrupt:
-                print(f"\n{Colors.RED}❌ Startup cancelled by user{Colors.END}")
+                print(f"\n{Colors.RED}[ERROR] Startup cancelled by user{Colors.END}")
                 sys.exit(1)
     
     def test_port_availability(self, ip):
@@ -156,7 +156,7 @@ class SchoolServerManager:
     
     def setup_http_mode(self):
         """Configure HTTP-only mode for offline use"""
-        print(f"\n{Colors.GREEN}📶 HTTP Mode - Optimized for Offline Use{Colors.END}")
+        print(f"\n{Colors.GREEN}[EMOJI] HTTP Mode - Optimized for Offline Use{Colors.END}")
         print(f"{Colors.CYAN}   • No SSL complexity{Colors.END}")
         print(f"{Colors.CYAN}   • Faster startup{Colors.END}")
         print(f"{Colors.CYAN}   • Perfect for local networks{Colors.END}")
@@ -178,22 +178,22 @@ class SchoolServerManager:
         mode_text = "PRODUCTION" if self.production_mode else "DEVELOPMENT"
         mode_color = Colors.RED if self.production_mode else Colors.GREEN
         
-        print(f"\n{Colors.BOLD}{Colors.GREEN}🚀 Server Starting...{Colors.END}")
+        print(f"\n{Colors.BOLD}{Colors.GREEN}[START] Server Starting...{Colors.END}")
         print(f"{Colors.CYAN}{'='*60}{Colors.END}")
-        print(f"{Colors.BOLD}📍 Server Details:{Colors.END}")
-        print(f"   🌐 Protocol: {Colors.BOLD}{protocol.upper()}{Colors.END}")
-        print(f"   📡 IP Address: {Colors.BOLD}{self.selected_ip}{Colors.END}")
-        print(f"   🔌 Port: {Colors.BOLD}{self.port}{Colors.END}")
-        print(f"   🚀 Mode: {mode_color}{Colors.BOLD}{mode_text}{Colors.END}")
-        print(f"   🕐 Started: {Colors.BOLD}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
+        print(f"{Colors.BOLD}[LOCATION] Server Details:{Colors.END}")
+        print(f"   [NETWORK] Protocol: {Colors.BOLD}{protocol.upper()}{Colors.END}")
+        print(f"   [EMOJI] IP Address: {Colors.BOLD}{self.selected_ip}{Colors.END}")
+        print(f"   [EMOJI] Port: {Colors.BOLD}{self.port}{Colors.END}")
+        print(f"   [START] Mode: {mode_color}{Colors.BOLD}{mode_text}{Colors.END}")
+        print(f"   [EMOJI] Started: {Colors.BOLD}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
         
-        print(f"\n{Colors.BOLD}🔗 Access URLs:{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] Access URLs:{Colors.END}")
         for i, url in enumerate(self.server_urls, 1):
             print(f"   {i}. {Colors.BLUE}{Colors.UNDERLINE}{url}{Colors.END}")
         
         if self.selected_ip not in ['127.0.0.1', 'localhost']:
-            print(f"\n{Colors.BOLD}📱 Mobile/Other Device Access:{Colors.END}")
-            print(f"   📲 Use: {Colors.BOLD}{Colors.GREEN}{protocol}://{self.selected_ip}:{self.port}/{Colors.END}")
+            print(f"\n{Colors.BOLD}[EMOJI] Mobile/Other Device Access:{Colors.END}")
+            print(f"   [EMOJI] Use: {Colors.BOLD}{Colors.GREEN}{protocol}://{self.selected_ip}:{self.port}/{Colors.END}")
         
         print(f"{Colors.CYAN}{'='*60}{Colors.END}")
     
@@ -224,14 +224,14 @@ class SchoolServerManager:
             return True
             
         except Exception as e:
-            print(f"{Colors.RED}❌ Failed to start Django server: {e}{Colors.END}")
+            print(f"{Colors.RED}[ERROR] Failed to start Django server: {e}{Colors.END}")
             return False
     
     def start_log_monitor(self):
         """Start log monitoring in a separate thread"""
         def monitor_logs():
             if self.server_process:
-                print(f"\n{Colors.BOLD}{Colors.YELLOW}📊 Server Logs:{Colors.END}")
+                print(f"\n{Colors.BOLD}{Colors.YELLOW}[HEALTH] Server Logs:{Colors.END}")
                 print(f"{Colors.CYAN}{'-'*60}{Colors.END}")
                 
                 try:
@@ -257,10 +257,10 @@ class SchoolServerManager:
             time.sleep(3)
             try:
                 main_url = self.server_urls[0]
-                print(f"\n{Colors.GREEN}🌐 Opening browser: {main_url}{Colors.END}")
+                print(f"\n{Colors.GREEN}[NETWORK] Opening browser: {main_url}{Colors.END}")
                 webbrowser.open(main_url)
             except Exception as e:
-                print(f"{Colors.YELLOW}⚠️  Could not auto-open browser: {e}{Colors.END}")
+                print(f"{Colors.YELLOW}[WARN]  Could not auto-open browser: {e}{Colors.END}")
         
         browser_thread = threading.Thread(target=delayed_browser_open, daemon=True)
         browser_thread.start()
@@ -268,7 +268,7 @@ class SchoolServerManager:
     def setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown"""
         def signal_handler(signum, frame):
-            print(f"\n{Colors.YELLOW}🛑 Shutdown signal received...{Colors.END}")
+            print(f"\n{Colors.YELLOW}[STOP] Shutdown signal received...{Colors.END}")
             self.cleanup()
             sys.exit(0)
         
@@ -277,21 +277,21 @@ class SchoolServerManager:
     
     def cleanup(self):
         """Clean up processes on exit"""
-        print(f"{Colors.YELLOW}🧹 Cleaning up...{Colors.END}")
+        print(f"{Colors.YELLOW}[CLEAN] Cleaning up...{Colors.END}")
         
         if self.server_process:
             try:
                 self.server_process.terminate()
                 self.server_process.wait(timeout=5)
-                print(f"{Colors.GREEN}✅ Django server stopped{Colors.END}")
+                print(f"{Colors.GREEN}[OK] Django server stopped{Colors.END}")
             except:
                 try:
                     self.server_process.kill()
-                    print(f"{Colors.YELLOW}⚠️  Django server force-killed{Colors.END}")
+                    print(f"{Colors.YELLOW}[WARN]  Django server force-killed{Colors.END}")
                 except:
                     pass
         
-        print(f"{Colors.GREEN}👋 School Management System stopped successfully!{Colors.END}")
+        print(f"{Colors.GREEN}[EMOJI] School Management System stopped successfully!{Colors.END}")
     
     def check_demo_status(self):
         """Check demo/license status before starting server"""
@@ -306,21 +306,21 @@ class SchoolServerManager:
             status = LicenseService.get_demo_status()
             
             if status.is_licensed:
-                print(f"{Colors.GREEN}✅ Licensed Version - Full Access{Colors.END}")
+                print(f"{Colors.GREEN}[OK] Licensed Version - Full Access{Colors.END}")
                 print(f"{Colors.CYAN}   Activated: {status.activated_at.strftime('%Y-%m-%d') if status.activated_at else 'N/A'}{Colors.END}")
                 return True
             elif status.is_active:
                 print(f"{Colors.YELLOW}⏰ Demo Version - {status.days_remaining} days remaining{Colors.END}")
                 if status.days_remaining <= 2:
-                    print(f"{Colors.RED}⚠️  Demo expires soon!{Colors.END}")
+                    print(f"{Colors.RED}[WARN]  Demo expires soon!{Colors.END}")
                 return True
             else:
-                print(f"{Colors.RED}❌ Demo Expired - Activation Required{Colors.END}")
+                print(f"{Colors.RED}[ERROR] Demo Expired - Activation Required{Colors.END}")
                 print(f"{Colors.YELLOW}   Visit: /demo/expired/ to activate{Colors.END}")
                 return True  # Allow server to start for activation
                 
         except Exception as e:
-            print(f"{Colors.YELLOW}⚠️  Could not check license status: {e}{Colors.END}")
+            print(f"{Colors.YELLOW}[WARN]  Could not check license status: {e}{Colors.END}")
             
         return True
     
@@ -334,7 +334,7 @@ class SchoolServerManager:
             # Check demo status first
             self.check_demo_status()
             
-            print(f"{Colors.YELLOW}🔍 Detecting network interfaces...{Colors.END}")
+            print(f"{Colors.YELLOW}[CHECK] Detecting network interfaces...{Colors.END}")
             interfaces = self.get_network_interfaces()
             
             self.selected_ip = self.display_network_options(interfaces)
@@ -357,13 +357,13 @@ class SchoolServerManager:
                 while True:
                     time.sleep(1)
                     if self.server_process and self.server_process.poll() is not None:
-                        print(f"{Colors.RED}❌ Django server stopped unexpectedly{Colors.END}")
+                        print(f"{Colors.RED}[ERROR] Django server stopped unexpectedly{Colors.END}")
                         break
             except KeyboardInterrupt:
                 pass
             
         except Exception as e:
-            print(f"{Colors.RED}❌ Unexpected error: {e}{Colors.END}")
+            print(f"{Colors.RED}[ERROR] Unexpected error: {e}{Colors.END}")
         finally:
             self.cleanup()
     
@@ -379,11 +379,11 @@ class SchoolServerManager:
             
             if not status.is_licensed:
                 if status.is_active:
-                    print(f"\n{Colors.BOLD}{Colors.YELLOW}💡 Demo Mode:{Colors.END}")
+                    print(f"\n{Colors.BOLD}{Colors.YELLOW}[TIP] Demo Mode:{Colors.END}")
                     print(f"{Colors.YELLOW}   • {status.days_remaining} days remaining{Colors.END}")
                     print(f"{Colors.YELLOW}   • Activate at: /demo/status/{Colors.END}")
                 else:
-                    print(f"\n{Colors.BOLD}{Colors.RED}🔑 Activation Required:{Colors.END}")
+                    print(f"\n{Colors.BOLD}{Colors.RED}[EMOJI] Activation Required:{Colors.END}")
                     print(f"{Colors.RED}   • Visit: /demo/expired/ to activate{Colors.END}")
                 
         except:
@@ -391,11 +391,11 @@ class SchoolServerManager:
 
 if __name__ == "__main__":
     if not os.path.exists('manage.py'):
-        print(f"{Colors.RED}❌ manage.py not found! Please run from Django project root.{Colors.END}")
+        print(f"{Colors.RED}[ERROR] manage.py not found! Please run from Django project root.{Colors.END}")
         sys.exit(1)
     
     if sys.version_info < (3, 8):
-        print(f"{Colors.RED}❌ Python 3.8+ required. Current: {sys.version}{Colors.END}")
+        print(f"{Colors.RED}[ERROR] Python 3.8+ required. Current: {sys.version}{Colors.END}")
         sys.exit(1)
     
     server_manager = SchoolServerManager()

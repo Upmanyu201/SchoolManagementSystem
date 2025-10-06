@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🗄️ Database Setup & Migration Manager
+[DATABASE] Database Setup & Migration Manager
 Handles SQLite database creation, migrations, and initial data setup
 """
 
@@ -42,16 +42,16 @@ class DatabaseSetup:
             return sys.executable
     
     def print_header(self):
-        print(f"{Colors.CYAN}╔══════════════════════════════════════════════════════════════╗")
-        print(f"║                                                              ║")
-        print(f"║  🗄️  DATABASE SETUP & MIGRATION MANAGER                     ║")
-        print(f"║  📊 SQLite Database Configuration                           ║")
-        print(f"║                                                              ║")
-        print(f"╚══════════════════════════════════════════════════════════════╝{Colors.END}")
+        print(f"{Colors.CYAN}================================================================")
+        print(f"                                                                ")
+        print(f"   [DATABASE]  DATABASE SETUP & MIGRATION MANAGER                      ")
+        print(f"   [HEALTH] SQLite Database Configuration                            ")
+        print(f"                                                                ")
+        print(f"================================================================{Colors.END}")
     
     def check_django_availability(self):
         """Check if Django is available"""
-        print(f"\n{Colors.BOLD}🔍 Checking Django availability...{Colors.END}")
+        print(f"\n{Colors.BOLD}[CHECK] Checking Django availability...{Colors.END}")
         
         try:
             cmd = [self.python_exe, "-c", "import django; print(django.get_version())"]
@@ -59,23 +59,23 @@ class DatabaseSetup:
             
             if result.returncode == 0:
                 version = result.stdout.strip()
-                print(f"   {Colors.GREEN}✅ Django {version} available{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Django {version} available{Colors.END}")
                 return True
             else:
-                print(f"   {Colors.RED}❌ Django not available{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Django not available{Colors.END}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Django check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Django check failed: {e}{Colors.END}")
             return False
     
     def backup_existing_database(self):
         """Backup existing database if it exists"""
         if not self.db_path.exists():
-            print(f"\n{Colors.BLUE}ℹ️  No existing database found{Colors.END}")
+            print(f"\n{Colors.BLUE}ℹ[EMOJI]  No existing database found{Colors.END}")
             return True
         
-        print(f"\n{Colors.BOLD}💾 Backing up existing database...{Colors.END}")
+        print(f"\n{Colors.BOLD}[MEMORY] Backing up existing database...{Colors.END}")
         
         try:
             # Create backup directory
@@ -89,30 +89,30 @@ class DatabaseSetup:
             # Copy database
             shutil.copy2(self.db_path, backup_path)
             
-            print(f"   {Colors.GREEN}✅ Database backed up to: {backup_name}{Colors.END}")
+            print(f"   {Colors.GREEN}[OK] Database backed up to: {backup_name}{Colors.END}")
             return True
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Backup failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Backup failed: {e}{Colors.END}")
             return False
     
     def remove_existing_database(self):
         """Remove existing database"""
         if self.db_path.exists():
-            print(f"\n{Colors.BOLD}🗑️  Removing existing database...{Colors.END}")
+            print(f"\n{Colors.BOLD}[EMOJI]  Removing existing database...{Colors.END}")
             
             try:
                 os.remove(self.db_path)
-                print(f"   {Colors.GREEN}✅ Existing database removed{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Existing database removed{Colors.END}")
             except Exception as e:
-                print(f"   {Colors.RED}❌ Could not remove database: {e}{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Could not remove database: {e}{Colors.END}")
                 return False
         
         return True
     
     def clean_migration_files(self):
         """Remove existing migration files (except __init__.py)"""
-        print(f"\n{Colors.BOLD}🧹 Cleaning migration files...{Colors.END}")
+        print(f"\n{Colors.BOLD}[CLEAN] Cleaning migration files...{Colors.END}")
         
         migration_dirs = []
         
@@ -141,14 +141,14 @@ class DatabaseSetup:
                     shutil.rmtree(pycache_dir)
                     
             except Exception as e:
-                print(f"   {Colors.YELLOW}⚠️  Could not clean {migrations_dir}: {e}{Colors.END}")
+                print(f"   {Colors.YELLOW}[WARN]  Could not clean {migrations_dir}: {e}{Colors.END}")
         
-        print(f"   {Colors.GREEN}✅ Cleaned {cleaned_count} migration files{Colors.END}")
+        print(f"   {Colors.GREEN}[OK] Cleaned {cleaned_count} migration files{Colors.END}")
         return True
     
     def create_initial_migrations(self):
         """Create initial migration files"""
-        print(f"\n{Colors.BOLD}📝 Creating initial migrations...{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] Creating initial migrations...{Colors.END}")
         
         try:
             cmd = [self.python_exe, "manage.py", "makemigrations"]
@@ -156,28 +156,28 @@ class DatabaseSetup:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Initial migrations created{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Initial migrations created{Colors.END}")
                 
                 # Show what was created
                 if result.stdout:
                     lines = result.stdout.strip().split('\n')
                     for line in lines:
                         if 'Create model' in line or 'migrations for' in line:
-                            print(f"   📄 {line}")
+                            print(f"   [EMOJI] {line}")
                 
                 return True
             else:
-                print(f"   {Colors.RED}❌ Migration creation failed{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Migration creation failed{Colors.END}")
                 print(f"   Error: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Migration creation error: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Migration creation error: {e}{Colors.END}")
             return False
     
     def apply_migrations(self):
         """Apply migrations to create database schema"""
-        print(f"\n{Colors.BOLD}🔧 Applying migrations...{Colors.END}")
+        print(f"\n{Colors.BOLD}[TOOL] Applying migrations...{Colors.END}")
         
         try:
             cmd = [self.python_exe, "manage.py", "migrate"]
@@ -185,7 +185,7 @@ class DatabaseSetup:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Migrations applied successfully{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Migrations applied successfully{Colors.END}")
                 
                 # Show applied migrations
                 if result.stdout:
@@ -196,24 +196,24 @@ class DatabaseSetup:
                             applied_count += 1
                     
                     if applied_count > 0:
-                        print(f"   📊 {applied_count} migrations applied")
+                        print(f"   [HEALTH] {applied_count} migrations applied")
                 
                 return True
             else:
-                print(f"   {Colors.RED}❌ Migration application failed{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Migration application failed{Colors.END}")
                 print(f"   Error: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Migration application error: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Migration application error: {e}{Colors.END}")
             return False
     
     def verify_database_structure(self):
         """Verify database was created correctly"""
-        print(f"\n{Colors.BOLD}✅ Verifying database structure...{Colors.END}")
+        print(f"\n{Colors.BOLD}[OK] Verifying database structure...{Colors.END}")
         
         if not self.db_path.exists():
-            print(f"   {Colors.RED}❌ Database file not created{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Database file not created{Colors.END}")
             return False
         
         try:
@@ -240,29 +240,29 @@ class DatabaseSetup:
                     missing_tables.append(table)
             
             if missing_tables:
-                print(f"   {Colors.RED}❌ Missing essential tables: {missing_tables}{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Missing essential tables: {missing_tables}{Colors.END}")
                 return False
             
-            print(f"   {Colors.GREEN}✅ Database structure valid{Colors.END}")
-            print(f"   📊 {len(table_names)} tables created")
+            print(f"   {Colors.GREEN}[OK] Database structure valid{Colors.END}")
+            print(f"   [HEALTH] {len(table_names)} tables created")
             
             # Show some key tables
             key_tables = ['auth_user', 'students_student', 'fees_fee', 'teachers_teacher']
             found_tables = [t for t in key_tables if t in table_names]
             
             if found_tables:
-                print(f"   📋 Key tables: {', '.join(found_tables)}")
+                print(f"   [LIST] Key tables: {', '.join(found_tables)}")
             
             conn.close()
             return True
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Database verification failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Database verification failed: {e}{Colors.END}")
             return False
     
     def create_superuser_prompt(self):
         """Prompt to create superuser account"""
-        print(f"\n{Colors.BOLD}👤 Superuser Account Setup{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] Superuser Account Setup{Colors.END}")
         
         try:
             response = input(f"   {Colors.YELLOW}Create superuser account now? (y/n): {Colors.END}")
@@ -276,22 +276,22 @@ class DatabaseSetup:
                 result = subprocess.run(cmd, timeout=300)
                 
                 if result.returncode == 0:
-                    print(f"   {Colors.GREEN}✅ Superuser created successfully{Colors.END}")
+                    print(f"   {Colors.GREEN}[OK] Superuser created successfully{Colors.END}")
                 else:
-                    print(f"   {Colors.YELLOW}⚠️  Superuser creation cancelled or failed{Colors.END}")
+                    print(f"   {Colors.YELLOW}[WARN]  Superuser creation cancelled or failed{Colors.END}")
             else:
-                print(f"   {Colors.BLUE}ℹ️  Superuser creation skipped{Colors.END}")
-                print(f"   {Colors.CYAN}💡 Run 'python manage.py createsuperuser' later{Colors.END}")
+                print(f"   {Colors.BLUE}ℹ[EMOJI]  Superuser creation skipped{Colors.END}")
+                print(f"   {Colors.CYAN}[TIP] Run 'python manage.py createsuperuser' later{Colors.END}")
             
             return True
             
         except Exception as e:
-            print(f"   {Colors.YELLOW}⚠️  Superuser setup error: {e}{Colors.END}")
+            print(f"   {Colors.YELLOW}[WARN]  Superuser setup error: {e}{Colors.END}")
             return True  # Not critical
     
     def load_initial_data(self):
         """Load initial data if fixtures exist"""
-        print(f"\n{Colors.BOLD}📊 Loading initial data...{Colors.END}")
+        print(f"\n{Colors.BOLD}[HEALTH] Loading initial data...{Colors.END}")
         
         # Look for fixture files
         fixture_dirs = [
@@ -306,28 +306,28 @@ class DatabaseSetup:
                     fixture_files.append(fixture_file)
         
         if not fixture_files:
-            print(f"   {Colors.BLUE}ℹ️  No fixture files found{Colors.END}")
+            print(f"   {Colors.BLUE}ℹ[EMOJI]  No fixture files found{Colors.END}")
             return True
         
         loaded_count = 0
         for fixture_file in fixture_files:
             try:
-                print(f"   📄 Loading {fixture_file.name}...")
+                print(f"   [EMOJI] Loading {fixture_file.name}...")
                 
                 cmd = [self.python_exe, "manage.py", "loaddata", str(fixture_file)]
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
                 
                 if result.returncode == 0:
-                    print(f"   {Colors.GREEN}✅ {fixture_file.name} loaded{Colors.END}")
+                    print(f"   {Colors.GREEN}[OK] {fixture_file.name} loaded{Colors.END}")
                     loaded_count += 1
                 else:
-                    print(f"   {Colors.YELLOW}⚠️  {fixture_file.name} failed to load{Colors.END}")
+                    print(f"   {Colors.YELLOW}[WARN]  {fixture_file.name} failed to load{Colors.END}")
                     
             except Exception as e:
-                print(f"   {Colors.YELLOW}⚠️  Error loading {fixture_file.name}: {e}{Colors.END}")
+                print(f"   {Colors.YELLOW}[WARN]  Error loading {fixture_file.name}: {e}{Colors.END}")
         
         if loaded_count > 0:
-            print(f"   {Colors.GREEN}✅ {loaded_count} fixture files loaded{Colors.END}")
+            print(f"   {Colors.GREEN}[OK] {loaded_count} fixture files loaded{Colors.END}")
         
         return True
     
@@ -369,11 +369,11 @@ class DatabaseSetup:
         # Create superuser
         self.create_superuser_prompt()
         
-        print(f"\n{Colors.GREEN}🎉 Database setup completed successfully!{Colors.END}")
-        print(f"\n{Colors.BOLD}📋 Database Information:{Colors.END}")
-        print(f"   📍 Location: {self.db_path}")
-        print(f"   💾 Backup Directory: {self.backup_dir}")
-        print(f"   🔧 Type: SQLite3")
+        print(f"\n{Colors.GREEN}[SUCCESS] Database setup completed successfully!{Colors.END}")
+        print(f"\n{Colors.BOLD}[LIST] Database Information:{Colors.END}")
+        print(f"   [LOCATION] Location: {self.db_path}")
+        print(f"   [MEMORY] Backup Directory: {self.backup_dir}")
+        print(f"   [TOOL] Type: SQLite3")
         
         return True
 
@@ -385,17 +385,17 @@ def main():
         success = setup.run_database_setup()
         
         if success:
-            print(f"\n{Colors.GREEN}✅ Database is ready for School Management System!{Colors.END}")
+            print(f"\n{Colors.GREEN}[OK] Database is ready for School Management System!{Colors.END}")
             sys.exit(0)
         else:
-            print(f"\n{Colors.RED}❌ Database setup failed{Colors.END}")
+            print(f"\n{Colors.RED}[ERROR] Database setup failed{Colors.END}")
             sys.exit(1)
             
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}⚠️  Database setup cancelled by user{Colors.END}")
+        print(f"\n{Colors.YELLOW}[WARN]  Database setup cancelled by user{Colors.END}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{Colors.RED}❌ Database setup error: {e}{Colors.END}")
+        print(f"\n{Colors.RED}[ERROR] Database setup error: {e}{Colors.END}")
         sys.exit(1)
 
 if __name__ == "__main__":

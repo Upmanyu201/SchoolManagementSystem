@@ -1,7 +1,5 @@
 @echo off
-:: 🎓 School Management System - Master Setup Script
-:: Automates complete Windows deployment with error handling
-
+chcp 65001 >nul
 setlocal enabledelayedexpansion
 title School Management System - Master Setup
 
@@ -14,24 +12,24 @@ set "CYAN=[96m"
 set "RESET=[0m"
 
 echo %CYAN%
-echo ╔══════════════════════════════════════════════════════════════╗
-echo ║                                                              ║
-echo ║  🎓 SCHOOL MANAGEMENT SYSTEM - MASTER SETUP                 ║
-echo ║  🚀 Windows Automated Deployment                            ║
-echo ║                                                              ║
-echo ╚══════════════════════════════════════════════════════════════╝
+echo ================================================================
+echo                                                                
+echo   SCHOOL MANAGEMENT SYSTEM - MASTER SETUP                    
+echo   Windows Automated Deployment                               
+echo                                                                
+echo ================================================================
 echo %RESET%
 
 :: Check if running as administrator
 net session >nul 2>&1
 if %errorLevel% neq 0 (
-    echo %RED%❌ This script requires administrator privileges%RESET%
-    echo %YELLOW%💡 Right-click and select "Run as administrator"%RESET%
+    echo %RED%[ERROR] This script requires administrator privileges%RESET%
+    echo %YELLOW%[INFO] Right-click and select "Run as administrator"%RESET%
     pause
     exit /b 1
 )
 
-echo %GREEN%✅ Running with administrator privileges%RESET%
+echo %GREEN%[OK] Running with administrator privileges%RESET%
 
 :: Set script directory
 set "SCRIPT_DIR=%~dp0"
@@ -41,23 +39,23 @@ cd /d "%SCRIPT_DIR%"
 :MAIN_MENU
 cls
 echo %CYAN%
-echo ╔══════════════════════════════════════════════════════════════╗
-echo ║                    SETUP OPTIONS                             ║
-echo ╚══════════════════════════════════════════════════════════════╝
+echo ================================================================
+echo                     SETUP OPTIONS                             
+echo ================================================================
 echo %RESET%
-echo %GREEN%1.%RESET% 🔧 Complete Fresh Installation (Recommended)
-echo %GREEN%2.%RESET% 🐍 Install Python Only
-echo %GREEN%3.%RESET% 📦 Setup Virtual Environment
-echo %GREEN%4.%RESET% 🗄️  Database Setup (Clean)
-echo %GREEN%5.%RESET% 🔄 Reset Migrations
-echo %GREEN%6.%RESET% 🚀 Start Development Server
-echo %GREEN%7.%RESET% 🧪 Run System Tests
-echo %GREEN%8.%RESET% 🛠️  Fix Common Issues
-echo %GREEN%9.%RESET% 📊 System Health Check
-echo %GREEN%0.%RESET% ❌ Exit
+echo %GREEN%1.%RESET% [SETUP] Complete Fresh Installation (Recommended)
+echo %GREEN%2.%RESET% [PYTHON] Install Python Only
+echo %GREEN%3.%RESET% [VENV] Setup Virtual Environment
+echo %GREEN%4.%RESET% [DATABASE] Database Setup (Clean)
+echo %GREEN%5.%RESET% [MIGRATE] Reset Migrations
+echo %GREEN%6.%RESET% [SERVER] Start Development Server
+echo %GREEN%7.%RESET% [TEST] Run System Tests
+echo %GREEN%8.%RESET% [FIX] Fix Common Issues
+echo %GREEN%9.%RESET% [HEALTH] System Health Check
+echo %GREEN%0.%RESET% [EXIT] Exit
 echo.
 
-set /p choice="🎯 Select option (0-9): "
+set /p choice="[INPUT] Select option (0-9): "
 
 if "%choice%"=="1" goto COMPLETE_SETUP
 if "%choice%"=="2" goto PYTHON_SETUP
@@ -72,10 +70,10 @@ if "%choice%"=="0" goto EXIT
 goto MAIN_MENU
 
 :COMPLETE_SETUP
-echo %CYAN%🚀 Starting Complete Fresh Installation...%RESET%
+echo %CYAN%[SETUP] Starting Complete Fresh Installation...%RESET%
 call python check_system.py
 if %errorlevel% neq 0 (
-    echo %RED%❌ System check failed%RESET%
+    echo %RED%[ERROR] System check failed%RESET%
     pause
     goto MAIN_MENU
 )
@@ -85,58 +83,58 @@ call python setup_environment.py
 call python database_setup.py
 call python install_dependencies.py
 call python run_tests.py
-echo %GREEN%✅ Complete setup finished!%RESET%
+echo %GREEN%[OK] Complete setup finished!%RESET%
 pause
 goto MAIN_MENU
 
 :PYTHON_SETUP
-echo %CYAN%🐍 Installing Python...%RESET%
+echo %CYAN%[PYTHON] Installing Python...%RESET%
 call python install_python.py
 pause
 goto MAIN_MENU
 
 :VENV_SETUP
-echo %CYAN%📦 Setting up Virtual Environment...%RESET%
+echo %CYAN%[VENV] Setting up Virtual Environment...%RESET%
 call python setup_environment.py
 pause
 goto MAIN_MENU
 
 :DB_SETUP
-echo %CYAN%🗄️ Setting up Database...%RESET%
+echo %CYAN%[DATABASE] Setting up Database...%RESET%
 call python database_setup.py
 pause
 goto MAIN_MENU
 
 :RESET_MIGRATIONS
-echo %CYAN%🔄 Resetting Migrations...%RESET%
+echo %CYAN%[MIGRATE] Resetting Migrations...%RESET%
 call python reset_migrations.py
 pause
 goto MAIN_MENU
 
 :START_SERVER
-echo %CYAN%🚀 Starting Development Server...%RESET%
+echo %CYAN%[SERVER] Starting Development Server...%RESET%
 call python start_server.py
 pause
 goto MAIN_MENU
 
 :RUN_TESTS
-echo %CYAN%🧪 Running System Tests...%RESET%
+echo %CYAN%[TEST] Running System Tests...%RESET%
 call python run_tests.py
 pause
 goto MAIN_MENU
 
 :FIX_ISSUES
-echo %CYAN%🛠️ Fixing Common Issues...%RESET%
+echo %CYAN%[FIX] Fixing Common Issues...%RESET%
 call python fix_common_issues.py
 pause
 goto MAIN_MENU
 
 :HEALTH_CHECK
-echo %CYAN%📊 Running System Health Check...%RESET%
+echo %CYAN%[HEALTH] Running System Health Check...%RESET%
 call python system_health.py
 pause
 goto MAIN_MENU
 
 :EXIT
-echo %GREEN%👋 Thank you for using School Management System!%RESET%
+echo %GREEN%[EXIT] Thank you for using School Management System!%RESET%
 exit /b 0

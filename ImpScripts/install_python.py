@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🐍 Python Auto-Installer for Windows
+[PYTHON] Python Auto-Installer for Windows
 Downloads and installs Python 3.12+ with all required components
 """
 
@@ -28,65 +28,65 @@ class PythonInstaller:
         self.installer_path = None
         
     def print_header(self):
-        print(f"{Colors.CYAN}╔══════════════════════════════════════════════════════════════╗")
-        print(f"║                                                              ║")
-        print(f"║  🐍 PYTHON AUTO-INSTALLER                                   ║")
-        print(f"║  📦 Installing Python {self.python_version} for Windows                    ║")
-        print(f"║                                                              ║")
-        print(f"╚══════════════════════════════════════════════════════════════╝{Colors.END}")
+        print(f"{Colors.CYAN}================================================================")
+        print(f"                                                                ")
+        print(f"  PYTHON AUTO-INSTALLER                                       ")
+        print(f"  Installing Python {self.python_version} for Windows                      ")
+        print(f"                                                                ")
+        print(f"================================================================{Colors.END}")
     
     def check_existing_python(self):
         """Check if suitable Python version already exists"""
-        print(f"\n{Colors.BOLD}🔍 Checking existing Python installations...{Colors.END}")
+        print(f"\n{Colors.BOLD}[CHECK] Checking existing Python installations...{Colors.END}")
         
         try:
             # Check current Python version
             version = sys.version_info
             if version.major >= 3 and version.minor >= 8:
-                print(f"   {Colors.GREEN}✅ Python {version.major}.{version.minor}.{version.micro} found{Colors.END}")
-                print(f"   {Colors.GREEN}✅ Version is compatible{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Python {version.major}.{version.minor}.{version.micro} found{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Version is compatible{Colors.END}")
                 
                 # Check if pip is available
                 try:
                     import pip
-                    print(f"   {Colors.GREEN}✅ pip is available{Colors.END}")
+                    print(f"   {Colors.GREEN}[OK] pip is available{Colors.END}")
                     return True
                 except ImportError:
-                    print(f"   {Colors.YELLOW}⚠️  pip not found - will install{Colors.END}")
+                    print(f"   {Colors.YELLOW}[WARN] pip not found - will install{Colors.END}")
                     return self.install_pip()
             else:
-                print(f"   {Colors.RED}❌ Python {version.major}.{version.minor} is too old{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Python {version.major}.{version.minor} is too old{Colors.END}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Could not check Python: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Could not check Python: {e}{Colors.END}")
             return False
     
     def download_python_installer(self):
         """Download Python installer from official website"""
-        print(f"\n{Colors.BOLD}📥 Downloading Python {self.python_version}...{Colors.END}")
+        print(f"\n{Colors.BOLD}[DOWNLOAD] Downloading Python {self.python_version}...{Colors.END}")
         
         try:
             # Create temporary directory
             temp_dir = tempfile.gettempdir()
             self.installer_path = os.path.join(temp_dir, f"python-{self.python_version}-installer.exe")
             
-            print(f"   📍 Download URL: {self.download_url}")
-            print(f"   💾 Saving to: {self.installer_path}")
+            print(f"   [URL] Download URL: {self.download_url}")
+            print(f"   [PATH] Saving to: {self.installer_path}")
             
             # Download with progress
             def progress_hook(block_num, block_size, total_size):
                 if total_size > 0:
                     percent = min(100, (block_num * block_size * 100) // total_size)
-                    print(f"\r   📊 Progress: {percent}% ", end='', flush=True)
+                    print(f"\r   [PROGRESS] {percent}% ", end='', flush=True)
             
             urllib.request.urlretrieve(self.download_url, self.installer_path, progress_hook)
-            print(f"\n   {Colors.GREEN}✅ Download completed{Colors.END}")
+            print(f"\n   {Colors.GREEN}[OK] Download completed{Colors.END}")
             
             # Verify file exists and has reasonable size
             if os.path.exists(self.installer_path):
                 size_mb = os.path.getsize(self.installer_path) / (1024 * 1024)
-                print(f"   📦 File size: {size_mb:.1f} MB")
+                print(f"   [SIZE] File size: {size_mb:.1f} MB")
                 
                 if size_mb < 10:  # Python installer should be larger than 10MB
                     raise Exception("Downloaded file seems too small")
@@ -96,16 +96,16 @@ class PythonInstaller:
                 raise Exception("Downloaded file not found")
                 
         except Exception as e:
-            print(f"\n   {Colors.RED}❌ Download failed: {e}{Colors.END}")
-            print(f"   {Colors.YELLOW}💡 Please download manually from: https://python.org{Colors.END}")
+            print(f"\n   {Colors.RED}[ERROR] Download failed: {e}{Colors.END}")
+            print(f"   {Colors.YELLOW}[TIP] Please download manually from: https://python.org{Colors.END}")
             return False
     
     def install_python(self):
         """Install Python using the downloaded installer"""
-        print(f"\n{Colors.BOLD}🔧 Installing Python {self.python_version}...{Colors.END}")
+        print(f"\n{Colors.BOLD}[INSTALL] Installing Python {self.python_version}...{Colors.END}")
         
         if not self.installer_path or not os.path.exists(self.installer_path):
-            print(f"   {Colors.RED}❌ Installer not found{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Installer not found{Colors.END}")
             return False
         
         try:
@@ -125,38 +125,38 @@ class PythonInstaller:
                 'Include_debug=0'            # Skip debug binaries
             ]
             
-            print(f"   🚀 Running installer...")
-            print(f"   ⏳ This may take a few minutes...")
+            print(f"   [INFO] Running installer...")
+            print(f"   [WAIT] This may take a few minutes...")
             
             # Run installer
             result = subprocess.run(install_cmd, capture_output=True, text=True, timeout=600)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Python installation completed{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Python installation completed{Colors.END}")
                 
                 # Clean up installer
                 try:
                     os.remove(self.installer_path)
-                    print(f"   🧹 Installer cleaned up")
+                    print(f"   [CLEAN] Installer cleaned up")
                 except:
                     pass
                 
                 return True
             else:
-                print(f"   {Colors.RED}❌ Installation failed{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Installation failed{Colors.END}")
                 print(f"   Error: {result.stderr}")
                 return False
                 
         except subprocess.TimeoutExpired:
-            print(f"   {Colors.RED}❌ Installation timed out{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Installation timed out{Colors.END}")
             return False
         except Exception as e:
-            print(f"   {Colors.RED}❌ Installation error: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Installation error: {e}{Colors.END}")
             return False
     
     def verify_installation(self):
         """Verify Python installation was successful"""
-        print(f"\n{Colors.BOLD}✅ Verifying installation...{Colors.END}")
+        print(f"\n{Colors.BOLD}[VERIFY] Verifying installation...{Colors.END}")
         
         try:
             # Try to run python command
@@ -165,7 +165,7 @@ class PythonInstaller:
             
             if result.returncode == 0:
                 version = result.stdout.strip()
-                print(f"   {Colors.GREEN}✅ {version} installed successfully{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] {version} installed successfully{Colors.END}")
                 
                 # Check pip
                 pip_result = subprocess.run(['python', '-m', 'pip', '--version'], 
@@ -173,22 +173,22 @@ class PythonInstaller:
                 
                 if pip_result.returncode == 0:
                     pip_version = pip_result.stdout.strip()
-                    print(f"   {Colors.GREEN}✅ pip available: {pip_version.split()[1]}{Colors.END}")
+                    print(f"   {Colors.GREEN}[OK] pip available: {pip_version.split()[1]}{Colors.END}")
                     return True
                 else:
-                    print(f"   {Colors.YELLOW}⚠️  pip not available{Colors.END}")
+                    print(f"   {Colors.YELLOW}[WARN] pip not available{Colors.END}")
                     return self.install_pip()
             else:
-                print(f"   {Colors.RED}❌ Python command not working{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Python command not working{Colors.END}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Verification failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Verification failed: {e}{Colors.END}")
             return False
     
     def install_pip(self):
         """Install pip if not available"""
-        print(f"\n{Colors.BOLD}📦 Installing pip...{Colors.END}")
+        print(f"\n{Colors.BOLD}[PIP] Installing pip...{Colors.END}")
         
         try:
             # Download get-pip.py
@@ -196,16 +196,16 @@ class PythonInstaller:
             temp_dir = tempfile.gettempdir()
             get_pip_path = os.path.join(temp_dir, "get-pip.py")
             
-            print(f"   📥 Downloading get-pip.py...")
+            print(f"   [DOWNLOAD] Downloading get-pip.py...")
             urllib.request.urlretrieve(get_pip_url, get_pip_path)
             
             # Run get-pip.py
-            print(f"   🔧 Installing pip...")
+            print(f"   [INSTALL] Installing pip...")
             result = subprocess.run([sys.executable, get_pip_path], 
                                   capture_output=True, text=True, timeout=300)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ pip installed successfully{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] pip installed successfully{Colors.END}")
                 
                 # Clean up
                 try:
@@ -215,17 +215,17 @@ class PythonInstaller:
                 
                 return True
             else:
-                print(f"   {Colors.RED}❌ pip installation failed{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] pip installation failed{Colors.END}")
                 print(f"   Error: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ pip installation error: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] pip installation error: {e}{Colors.END}")
             return False
     
     def update_environment_path(self):
         """Ensure Python is in system PATH"""
-        print(f"\n{Colors.BOLD}🔧 Updating system PATH...{Colors.END}")
+        print(f"\n{Colors.BOLD}[PATH] Updating system PATH...{Colors.END}")
         
         try:
             # Get Python installation path
@@ -236,8 +236,8 @@ class PythonInstaller:
                 python_path = Path(result.stdout.strip()).parent
                 scripts_path = python_path / "Scripts"
                 
-                print(f"   📍 Python path: {python_path}")
-                print(f"   📍 Scripts path: {scripts_path}")
+                print(f"   [PATH] Python path: {python_path}")
+                print(f"   [PATH] Scripts path: {scripts_path}")
                 
                 # Check if already in PATH
                 current_path = os.environ.get('PATH', '')
@@ -250,15 +250,15 @@ class PythonInstaller:
                     paths_to_add.append(str(scripts_path))
                 
                 if paths_to_add:
-                    print(f"   {Colors.YELLOW}⚠️  Adding paths to system PATH{Colors.END}")
-                    print(f"   💡 You may need to restart your command prompt{Colors.END}")
+                    print(f"   {Colors.YELLOW}[WARN] Adding paths to system PATH{Colors.END}")
+                    print(f"   [TIP] You may need to restart your command prompt{Colors.END}")
                 else:
-                    print(f"   {Colors.GREEN}✅ Python already in PATH{Colors.END}")
+                    print(f"   {Colors.GREEN}[OK] Python already in PATH{Colors.END}")
                 
                 return True
                 
         except Exception as e:
-            print(f"   {Colors.YELLOW}⚠️  Could not update PATH: {e}{Colors.END}")
+            print(f"   {Colors.YELLOW}[WARN] Could not update PATH: {e}{Colors.END}")
             return True  # Not critical
     
     def run_installation(self):
@@ -267,10 +267,10 @@ class PythonInstaller:
         
         # Check if Python is already installed
         if self.check_existing_python():
-            print(f"\n{Colors.GREEN}🎉 Python is already installed and ready!{Colors.END}")
+            print(f"\n{Colors.GREEN}[SUCCESS] Python is already installed and ready!{Colors.END}")
             return True
         
-        print(f"\n{Colors.YELLOW}📦 Python installation required{Colors.END}")
+        print(f"\n{Colors.YELLOW}[INFO] Python installation required{Colors.END}")
         
         # Download installer
         if not self.download_python_installer():
@@ -287,8 +287,8 @@ class PythonInstaller:
         # Update PATH
         self.update_environment_path()
         
-        print(f"\n{Colors.GREEN}🎉 Python installation completed successfully!{Colors.END}")
-        print(f"{Colors.CYAN}💡 You may need to restart your command prompt{Colors.END}")
+        print(f"\n{Colors.GREEN}[SUCCESS] Python installation completed successfully!{Colors.END}")
+        print(f"{Colors.CYAN}[TIP] You may need to restart your command prompt{Colors.END}")
         
         return True
 
@@ -300,17 +300,17 @@ def main():
         success = installer.run_installation()
         
         if success:
-            print(f"\n{Colors.GREEN}✅ Python is ready for School Management System!{Colors.END}")
+            print(f"\n{Colors.GREEN}[READY] Python is ready for School Management System!{Colors.END}")
             sys.exit(0)
         else:
-            print(f"\n{Colors.RED}❌ Python installation failed{Colors.END}")
+            print(f"\n{Colors.RED}[ERROR] Python installation failed{Colors.END}")
             sys.exit(1)
             
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}⚠️  Installation cancelled by user{Colors.END}")
+        print(f"\n{Colors.YELLOW}[CANCELLED] Installation cancelled by user{Colors.END}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{Colors.RED}❌ Installation error: {e}{Colors.END}")
+        print(f"\n{Colors.RED}[ERROR] Installation error: {e}{Colors.END}")
         sys.exit(1)
 
 if __name__ == "__main__":

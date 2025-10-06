@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🔄 Migration Reset Tool
+[RESET] Migration Reset Tool
 Safely resets Django migrations and rebuilds database schema
 """
 
@@ -40,16 +40,16 @@ class MigrationReset:
         return str(venv_python) if venv_python.exists() else sys.executable
     
     def print_header(self):
-        print(f"{Colors.CYAN}╔══════════════════════════════════════════════════════════════╗")
-        print(f"║                                                              ║")
-        print(f"║  🔄 MIGRATION RESET TOOL                                    ║")
-        print(f"║  🗄️  Safely reset Django migrations                         ║")
-        print(f"║                                                              ║")
-        print(f"╚══════════════════════════════════════════════════════════════╝{Colors.END}")
+        print(f"{Colors.CYAN}================================================================")
+        print(f"                                                                ")
+        print(f"   [RESET] MIGRATION RESET TOOL                                     ")
+        print(f"   [DATABASE]  Safely reset Django migrations                          ")
+        print(f"                                                                ")
+        print(f"================================================================{Colors.END}")
     
     def detect_django_apps(self):
         """Detect Django apps with migrations"""
-        print(f"\n{Colors.BOLD}🔍 Detecting Django apps...{Colors.END}")
+        print(f"\n{Colors.BOLD}[CHECK] Detecting Django apps...{Colors.END}")
         
         self.apps_with_migrations = []
         
@@ -74,18 +74,18 @@ class MigrationReset:
                 
                 if migration_files or app_dir.exists():
                     self.apps_with_migrations.append(app_name)
-                    print(f"   📦 Found app: {Colors.GREEN}{app_name}{Colors.END} ({len(migration_files)} migrations)")
+                    print(f"   [PACKAGE] Found app: {Colors.GREEN}{app_name}{Colors.END} ({len(migration_files)} migrations)")
         
         if not self.apps_with_migrations:
-            print(f"   {Colors.YELLOW}⚠️  No Django apps with migrations found{Colors.END}")
+            print(f"   {Colors.YELLOW}[WARN]  No Django apps with migrations found{Colors.END}")
             return False
         
-        print(f"   {Colors.GREEN}✅ Found {len(self.apps_with_migrations)} Django apps{Colors.END}")
+        print(f"   {Colors.GREEN}[OK] Found {len(self.apps_with_migrations)} Django apps{Colors.END}")
         return True
     
     def backup_current_state(self):
         """Backup current database and migrations"""
-        print(f"\n{Colors.BOLD}💾 Creating backup...{Colors.END}")
+        print(f"\n{Colors.BOLD}[MEMORY] Creating backup...{Colors.END}")
         
         try:
             # Create backup directory
@@ -96,7 +96,7 @@ class MigrationReset:
             if self.db_path.exists():
                 db_backup = self.backup_dir / f"db_before_reset_{timestamp}.sqlite3"
                 shutil.copy2(self.db_path, db_backup)
-                print(f"   {Colors.GREEN}✅ Database backed up: {db_backup.name}{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Database backed up: {db_backup.name}{Colors.END}")
             
             # Backup migration files
             migrations_backup_dir = self.backup_dir / f"migrations_backup_{timestamp}"
@@ -110,20 +110,20 @@ class MigrationReset:
                     shutil.copytree(app_migrations_dir, app_backup_dir)
                     backed_up_count += 1
             
-            print(f"   {Colors.GREEN}✅ Migrations backed up: {backed_up_count} apps{Colors.END}")
+            print(f"   {Colors.GREEN}[OK] Migrations backed up: {backed_up_count} apps{Colors.END}")
             return True
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Backup failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Backup failed: {e}{Colors.END}")
             return False
     
     def show_reset_options(self):
         """Show reset options to user"""
-        print(f"\n{Colors.BOLD}🎯 Reset Options:{Colors.END}")
-        print(f"{Colors.GREEN}1.{Colors.END} 🔄 Soft Reset (Keep data, reset migrations only)")
-        print(f"{Colors.GREEN}2.{Colors.END} 🗑️  Hard Reset (Delete database and migrations)")
-        print(f"{Colors.GREEN}3.{Colors.END} 🧹 Clean Reset (Fresh start with sample data)")
-        print(f"{Colors.GREEN}0.{Colors.END} ❌ Cancel")
+        print(f"\n{Colors.BOLD}[TARGET] Reset Options:{Colors.END}")
+        print(f"{Colors.GREEN}1.{Colors.END} [RESET] Soft Reset (Keep data, reset migrations only)")
+        print(f"{Colors.GREEN}2.{Colors.END} [EMOJI]  Hard Reset (Delete database and migrations)")
+        print(f"{Colors.GREEN}3.{Colors.END} [CLEAN] Clean Reset (Fresh start with sample data)")
+        print(f"{Colors.GREEN}0.{Colors.END} [ERROR] Cancel")
         
         while True:
             try:
@@ -134,17 +134,17 @@ class MigrationReset:
                 elif choice in ["1", "2", "3"]:
                     return int(choice)
                 else:
-                    print(f"{Colors.RED}❌ Invalid choice. Please select 0-3{Colors.END}")
+                    print(f"{Colors.RED}[ERROR] Invalid choice. Please select 0-3{Colors.END}")
                     
             except KeyboardInterrupt:
                 return None
     
     def export_data(self):
         """Export existing data before reset"""
-        print(f"\n{Colors.BOLD}📤 Exporting existing data...{Colors.END}")
+        print(f"\n{Colors.BOLD}[UPLOAD] Exporting existing data...{Colors.END}")
         
         if not self.db_path.exists():
-            print(f"   {Colors.BLUE}ℹ️  No database to export{Colors.END}")
+            print(f"   {Colors.BLUE}ℹ[EMOJI]  No database to export{Colors.END}")
             return True
         
         try:
@@ -162,19 +162,19 @@ class MigrationReset:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Data exported: {export_file.name}{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Data exported: {export_file.name}{Colors.END}")
                 return str(export_file)
             else:
-                print(f"   {Colors.YELLOW}⚠️  Data export failed (may be empty database){Colors.END}")
+                print(f"   {Colors.YELLOW}[WARN]  Data export failed (may be empty database){Colors.END}")
                 return None
                 
         except Exception as e:
-            print(f"   {Colors.YELLOW}⚠️  Export error: {e}{Colors.END}")
+            print(f"   {Colors.YELLOW}[WARN]  Export error: {e}{Colors.END}")
             return None
     
     def remove_migration_files(self):
         """Remove migration files from all apps"""
-        print(f"\n{Colors.BOLD}🗑️  Removing migration files...{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI]  Removing migration files...{Colors.END}")
         
         removed_count = 0
         
@@ -197,31 +197,31 @@ class MigrationReset:
                     if pycache_dir.exists():
                         shutil.rmtree(pycache_dir)
                     
-                    print(f"   🧹 Cleaned {app_name} migrations")
+                    print(f"   [CLEAN] Cleaned {app_name} migrations")
                     
                 except Exception as e:
-                    print(f"   {Colors.YELLOW}⚠️  Could not clean {app_name}: {e}{Colors.END}")
+                    print(f"   {Colors.YELLOW}[WARN]  Could not clean {app_name}: {e}{Colors.END}")
         
-        print(f"   {Colors.GREEN}✅ Removed {removed_count} migration files{Colors.END}")
+        print(f"   {Colors.GREEN}[OK] Removed {removed_count} migration files{Colors.END}")
         return True
     
     def remove_database(self):
         """Remove existing database"""
         if self.db_path.exists():
-            print(f"\n{Colors.BOLD}🗑️  Removing database...{Colors.END}")
+            print(f"\n{Colors.BOLD}[EMOJI]  Removing database...{Colors.END}")
             
             try:
                 os.remove(self.db_path)
-                print(f"   {Colors.GREEN}✅ Database removed{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Database removed{Colors.END}")
             except Exception as e:
-                print(f"   {Colors.RED}❌ Could not remove database: {e}{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Could not remove database: {e}{Colors.END}")
                 return False
         
         return True
     
     def create_fresh_migrations(self):
         """Create fresh migration files"""
-        print(f"\n{Colors.BOLD}📝 Creating fresh migrations...{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] Creating fresh migrations...{Colors.END}")
         
         try:
             cmd = [self.python_exe, "manage.py", "makemigrations"]
@@ -229,28 +229,28 @@ class MigrationReset:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Fresh migrations created{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Fresh migrations created{Colors.END}")
                 
                 # Show created migrations
                 if result.stdout:
                     lines = result.stdout.strip().split('\n')
                     for line in lines:
                         if 'Create model' in line or 'migrations for' in line:
-                            print(f"   📄 {line}")
+                            print(f"   [EMOJI] {line}")
                 
                 return True
             else:
-                print(f"   {Colors.RED}❌ Migration creation failed{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Migration creation failed{Colors.END}")
                 print(f"   Error: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Migration creation error: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Migration creation error: {e}{Colors.END}")
             return False
     
     def apply_migrations(self):
         """Apply fresh migrations"""
-        print(f"\n{Colors.BOLD}🔧 Applying migrations...{Colors.END}")
+        print(f"\n{Colors.BOLD}[TOOL] Applying migrations...{Colors.END}")
         
         try:
             cmd = [self.python_exe, "manage.py", "migrate"]
@@ -258,15 +258,15 @@ class MigrationReset:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Migrations applied successfully{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Migrations applied successfully{Colors.END}")
                 return True
             else:
-                print(f"   {Colors.RED}❌ Migration application failed{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Migration application failed{Colors.END}")
                 print(f"   Error: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"   {Colors.RED}❌ Migration application error: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Migration application error: {e}{Colors.END}")
             return False
     
     def restore_data(self, export_file):
@@ -274,7 +274,7 @@ class MigrationReset:
         if not export_file or not Path(export_file).exists():
             return True
         
-        print(f"\n{Colors.BOLD}📥 Restoring data...{Colors.END}")
+        print(f"\n{Colors.BOLD}[DOWNLOAD] Restoring data...{Colors.END}")
         
         try:
             cmd = [self.python_exe, "manage.py", "loaddata", export_file]
@@ -282,15 +282,15 @@ class MigrationReset:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             
             if result.returncode == 0:
-                print(f"   {Colors.GREEN}✅ Data restored successfully{Colors.END}")
+                print(f"   {Colors.GREEN}[OK] Data restored successfully{Colors.END}")
                 return True
             else:
-                print(f"   {Colors.YELLOW}⚠️  Data restoration failed{Colors.END}")
-                print(f"   {Colors.CYAN}💡 You may need to recreate data manually{Colors.END}")
+                print(f"   {Colors.YELLOW}[WARN]  Data restoration failed{Colors.END}")
+                print(f"   {Colors.CYAN}[TIP] You may need to recreate data manually{Colors.END}")
                 return True  # Not critical
                 
         except Exception as e:
-            print(f"   {Colors.YELLOW}⚠️  Data restoration error: {e}{Colors.END}")
+            print(f"   {Colors.YELLOW}[WARN]  Data restoration error: {e}{Colors.END}")
             return True  # Not critical
     
     def run_reset(self, reset_type):
@@ -298,7 +298,7 @@ class MigrationReset:
         export_file = None
         
         if reset_type == 1:  # Soft Reset
-            print(f"\n{Colors.CYAN}🔄 Starting Soft Reset...{Colors.END}")
+            print(f"\n{Colors.CYAN}[RESET] Starting Soft Reset...{Colors.END}")
             export_file = self.export_data()
             
             if not self.remove_migration_files():
@@ -311,7 +311,7 @@ class MigrationReset:
             self.restore_data(export_file)
             
         elif reset_type == 2:  # Hard Reset
-            print(f"\n{Colors.CYAN}🗑️  Starting Hard Reset...{Colors.END}")
+            print(f"\n{Colors.CYAN}[EMOJI]  Starting Hard Reset...{Colors.END}")
             
             if not self.remove_migration_files():
                 return False
@@ -323,7 +323,7 @@ class MigrationReset:
                 return False
             
         elif reset_type == 3:  # Clean Reset
-            print(f"\n{Colors.CYAN}🧹 Starting Clean Reset...{Colors.END}")
+            print(f"\n{Colors.CYAN}[CLEAN] Starting Clean Reset...{Colors.END}")
             
             if not self.remove_migration_files():
                 return False
@@ -341,7 +341,7 @@ class MigrationReset:
     
     def load_sample_data(self):
         """Load sample data for clean reset"""
-        print(f"\n{Colors.BOLD}📊 Loading sample data...{Colors.END}")
+        print(f"\n{Colors.BOLD}[HEALTH] Loading sample data...{Colors.END}")
         
         # Look for sample data fixtures
         sample_dirs = [
@@ -359,16 +359,16 @@ class MigrationReset:
                         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
                         
                         if result.returncode == 0:
-                            print(f"   {Colors.GREEN}✅ Loaded {fixture_file.name}{Colors.END}")
+                            print(f"   {Colors.GREEN}[OK] Loaded {fixture_file.name}{Colors.END}")
                             loaded_count += 1
                         
                     except Exception:
                         pass
         
         if loaded_count == 0:
-            print(f"   {Colors.BLUE}ℹ️  No sample data found{Colors.END}")
+            print(f"   {Colors.BLUE}ℹ[EMOJI]  No sample data found{Colors.END}")
         else:
-            print(f"   {Colors.GREEN}✅ {loaded_count} sample data files loaded{Colors.END}")
+            print(f"   {Colors.GREEN}[OK] {loaded_count} sample data files loaded{Colors.END}")
     
     def run_migration_reset(self):
         """Run complete migration reset process"""
@@ -382,7 +382,7 @@ class MigrationReset:
         reset_type = self.show_reset_options()
         
         if reset_type is None:
-            print(f"\n{Colors.YELLOW}⚠️  Reset cancelled by user{Colors.END}")
+            print(f"\n{Colors.YELLOW}[WARN]  Reset cancelled by user{Colors.END}")
             return False
         
         # Create backup
@@ -393,13 +393,13 @@ class MigrationReset:
         if not self.run_reset(reset_type):
             return False
         
-        print(f"\n{Colors.GREEN}🎉 Migration reset completed successfully!{Colors.END}")
+        print(f"\n{Colors.GREEN}[SUCCESS] Migration reset completed successfully!{Colors.END}")
         
         reset_names = {1: "Soft Reset", 2: "Hard Reset", 3: "Clean Reset"}
-        print(f"\n{Colors.BOLD}📋 Reset Summary:{Colors.END}")
-        print(f"   🔄 Type: {reset_names[reset_type]}")
-        print(f"   📦 Apps: {len(self.apps_with_migrations)} Django apps")
-        print(f"   💾 Backups: {self.backup_dir}")
+        print(f"\n{Colors.BOLD}[LIST] Reset Summary:{Colors.END}")
+        print(f"   [RESET] Type: {reset_names[reset_type]}")
+        print(f"   [PACKAGE] Apps: {len(self.apps_with_migrations)} Django apps")
+        print(f"   [MEMORY] Backups: {self.backup_dir}")
         
         return True
 
@@ -411,17 +411,17 @@ def main():
         success = reset_tool.run_migration_reset()
         
         if success:
-            print(f"\n{Colors.GREEN}✅ Migrations reset successfully!{Colors.END}")
+            print(f"\n{Colors.GREEN}[OK] Migrations reset successfully!{Colors.END}")
             sys.exit(0)
         else:
-            print(f"\n{Colors.RED}❌ Migration reset failed{Colors.END}")
+            print(f"\n{Colors.RED}[ERROR] Migration reset failed{Colors.END}")
             sys.exit(1)
             
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}⚠️  Reset cancelled by user{Colors.END}")
+        print(f"\n{Colors.YELLOW}[WARN]  Reset cancelled by user{Colors.END}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{Colors.RED}❌ Reset error: {e}{Colors.END}")
+        print(f"\n{Colors.RED}[ERROR] Reset error: {e}{Colors.END}")
         sys.exit(1)
 
 if __name__ == "__main__":

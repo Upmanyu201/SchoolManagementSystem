@@ -16,6 +16,11 @@ set PRODUCTION=true
 set DEBUG=False
 set DJANGO_SETTINGS_MODULE=config.settings
 
+echo [INFO] Starting in PRODUCTION mode...
+echo [WARN] Debug mode is DISABLED
+echo [INFO] Static files will be served efficiently
+echo.
+
 :: Call the main startup script with production flag
 call ImpScripts\start_server.bat --production
 

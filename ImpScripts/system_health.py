@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-📊 System Health Monitor
+[HEALTH] System Health Monitor
 Real-time monitoring and diagnostics for School Management System
 """
 
@@ -42,14 +42,14 @@ class SystemHealthMonitor:
         return str(venv_python) if venv_python.exists() else sys.executable
     
     def print_header(self):
-        print(f"{Colors.CYAN}╔══════════════════════════════════════════════════════════════╗")
-        print(f"║                                                              ║")
-        print(f"║  📊 SYSTEM HEALTH MONITOR                                   ║")
-        print(f"║  🔍 Real-time School Management System Diagnostics         ║")
-        print(f"║                                                              ║")
-        print(f"╚══════════════════════════════════════════════════════════════╝{Colors.END}")
+        print(f"{Colors.CYAN}================================================================")
+        print(f"                                                                ")
+        print(f"   [HEALTH] SYSTEM HEALTH MONITOR                                    ")
+        print(f"   [CHECK] Real-time School Management System Diagnostics          ")
+        print(f"                                                                ")
+        print(f"================================================================{Colors.END}")
         
-        print(f"\n{Colors.BOLD}🕐 Health Check Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] Health Check Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
     
     def add_score(self, points, max_points=None):
         """Add points to health score"""
@@ -61,19 +61,19 @@ class SystemHealthMonitor:
     
     def check_system_resources(self):
         """Check system resource usage"""
-        print(f"\n{Colors.BOLD}💻 System Resources{Colors.END}")
+        print(f"\n{Colors.BOLD}[SYSTEM] System Resources{Colors.END}")
         
         try:
             # CPU Usage
             cpu_percent = psutil.cpu_percent(interval=1)
             if cpu_percent < 70:
-                print(f"   CPU Usage: {Colors.GREEN}{cpu_percent:.1f}%{Colors.END} ✅")
+                print(f"   CPU Usage: {Colors.GREEN}{cpu_percent:.1f}%{Colors.END} [OK]")
                 self.add_score(10)
             elif cpu_percent < 90:
-                print(f"   CPU Usage: {Colors.YELLOW}{cpu_percent:.1f}%{Colors.END} ⚠️")
+                print(f"   CPU Usage: {Colors.YELLOW}{cpu_percent:.1f}%{Colors.END} [WARN]")
                 self.add_score(5, 10)
             else:
-                print(f"   CPU Usage: {Colors.RED}{cpu_percent:.1f}%{Colors.END} ❌")
+                print(f"   CPU Usage: {Colors.RED}{cpu_percent:.1f}%{Colors.END} [ERROR]")
                 self.add_score(0, 10)
             
             # Memory Usage
@@ -82,13 +82,13 @@ class SystemHealthMonitor:
             memory_gb = memory.total / (1024**3)
             
             if memory_percent < 70:
-                print(f"   Memory: {Colors.GREEN}{memory_percent:.1f}% of {memory_gb:.1f}GB{Colors.END} ✅")
+                print(f"   Memory: {Colors.GREEN}{memory_percent:.1f}% of {memory_gb:.1f}GB{Colors.END} [OK]")
                 self.add_score(10)
             elif memory_percent < 85:
-                print(f"   Memory: {Colors.YELLOW}{memory_percent:.1f}% of {memory_gb:.1f}GB{Colors.END} ⚠️")
+                print(f"   Memory: {Colors.YELLOW}{memory_percent:.1f}% of {memory_gb:.1f}GB{Colors.END} [WARN]")
                 self.add_score(5, 10)
             else:
-                print(f"   Memory: {Colors.RED}{memory_percent:.1f}% of {memory_gb:.1f}GB{Colors.END} ❌")
+                print(f"   Memory: {Colors.RED}{memory_percent:.1f}% of {memory_gb:.1f}GB{Colors.END} [ERROR]")
                 self.add_score(0, 10)
             
             # Disk Usage
@@ -97,22 +97,22 @@ class SystemHealthMonitor:
             free_gb = disk.free / (1024**3)
             
             if disk_percent < 80:
-                print(f"   Disk: {Colors.GREEN}{disk_percent:.1f}% used, {free_gb:.1f}GB free{Colors.END} ✅")
+                print(f"   Disk: {Colors.GREEN}{disk_percent:.1f}% used, {free_gb:.1f}GB free{Colors.END} [OK]")
                 self.add_score(10)
             elif disk_percent < 90:
-                print(f"   Disk: {Colors.YELLOW}{disk_percent:.1f}% used, {free_gb:.1f}GB free{Colors.END} ⚠️")
+                print(f"   Disk: {Colors.YELLOW}{disk_percent:.1f}% used, {free_gb:.1f}GB free{Colors.END} [WARN]")
                 self.add_score(5, 10)
             else:
-                print(f"   Disk: {Colors.RED}{disk_percent:.1f}% used, {free_gb:.1f}GB free{Colors.END} ❌")
+                print(f"   Disk: {Colors.RED}{disk_percent:.1f}% used, {free_gb:.1f}GB free{Colors.END} [ERROR]")
                 self.add_score(0, 10)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Resource check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Resource check failed: {e}{Colors.END}")
             self.add_score(0, 30)
     
     def check_python_environment(self):
         """Check Python environment health"""
-        print(f"\n{Colors.BOLD}🐍 Python Environment{Colors.END}")
+        print(f"\n{Colors.BOLD}[PYTHON] Python Environment{Colors.END}")
         
         try:
             # Python version
@@ -121,18 +121,18 @@ class SystemHealthMonitor:
             
             if result.returncode == 0:
                 version = result.stdout.strip()
-                print(f"   Version: {Colors.GREEN}{version}{Colors.END} ✅")
+                print(f"   Version: {Colors.GREEN}{version}{Colors.END} [OK]")
                 self.add_score(5)
             else:
-                print(f"   Version: {Colors.RED}Could not determine{Colors.END} ❌")
+                print(f"   Version: {Colors.RED}Could not determine{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
             # Virtual environment
             if str(self.venv_path) in self.python_exe:
-                print(f"   Virtual Env: {Colors.GREEN}Active{Colors.END} ✅")
+                print(f"   Virtual Env: {Colors.GREEN}Active{Colors.END} [OK]")
                 self.add_score(5)
             else:
-                print(f"   Virtual Env: {Colors.YELLOW}Using system Python{Colors.END} ⚠️")
+                print(f"   Virtual Env: {Colors.YELLOW}Using system Python{Colors.END} [WARN]")
                 self.add_score(2, 5)
             
             # pip health
@@ -140,19 +140,19 @@ class SystemHealthMonitor:
                                   capture_output=True, text=True, timeout=30)
             
             if result.returncode == 0:
-                print(f"   Dependencies: {Colors.GREEN}No conflicts{Colors.END} ✅")
+                print(f"   Dependencies: {Colors.GREEN}No conflicts{Colors.END} [OK]")
                 self.add_score(5)
             else:
-                print(f"   Dependencies: {Colors.YELLOW}Conflicts detected{Colors.END} ⚠️")
+                print(f"   Dependencies: {Colors.YELLOW}Conflicts detected{Colors.END} [WARN]")
                 self.add_score(2, 5)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Python check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Python check failed: {e}{Colors.END}")
             self.add_score(0, 15)
     
     def check_django_health(self):
         """Check Django application health"""
-        print(f"\n{Colors.BOLD}🎯 Django Application{Colors.END}")
+        print(f"\n{Colors.BOLD}[TARGET] Django Application{Colors.END}")
         
         try:
             # Django version
@@ -161,10 +161,10 @@ class SystemHealthMonitor:
             
             if result.returncode == 0:
                 version = result.stdout.strip()
-                print(f"   Django: {Colors.GREEN}v{version}{Colors.END} ✅")
+                print(f"   Django: {Colors.GREEN}v{version}{Colors.END} [OK]")
                 self.add_score(5)
             else:
-                print(f"   Django: {Colors.RED}Not available{Colors.END} ❌")
+                print(f"   Django: {Colors.RED}Not available{Colors.END} [ERROR]")
                 self.add_score(0, 5)
                 return
             
@@ -173,10 +173,10 @@ class SystemHealthMonitor:
                                   capture_output=True, text=True, timeout=30)
             
             if result.returncode == 0:
-                print(f"   Configuration: {Colors.GREEN}Valid{Colors.END} ✅")
+                print(f"   Configuration: {Colors.GREEN}Valid{Colors.END} [OK]")
                 self.add_score(10)
             else:
-                print(f"   Configuration: {Colors.RED}Issues detected{Colors.END} ❌")
+                print(f"   Configuration: {Colors.RED}Issues detected{Colors.END} [ERROR]")
                 self.add_score(0, 10)
             
             # Migration status
@@ -186,34 +186,34 @@ class SystemHealthMonitor:
             if result.returncode == 0:
                 output = result.stdout
                 if '[X]' in output and '[ ]' not in output:
-                    print(f"   Migrations: {Colors.GREEN}All applied{Colors.END} ✅")
+                    print(f"   Migrations: {Colors.GREEN}All applied{Colors.END} [OK]")
                     self.add_score(5)
                 elif '[ ]' in output:
-                    print(f"   Migrations: {Colors.YELLOW}Pending migrations{Colors.END} ⚠️")
+                    print(f"   Migrations: {Colors.YELLOW}Pending migrations{Colors.END} [WARN]")
                     self.add_score(2, 5)
                 else:
-                    print(f"   Migrations: {Colors.BLUE}No migrations{Colors.END} ℹ️")
+                    print(f"   Migrations: {Colors.BLUE}No migrations{Colors.END} ℹ[EMOJI]")
                     self.add_score(3, 5)
             else:
-                print(f"   Migrations: {Colors.RED}Check failed{Colors.END} ❌")
+                print(f"   Migrations: {Colors.RED}Check failed{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Django check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Django check failed: {e}{Colors.END}")
             self.add_score(0, 20)
     
     def check_database_health(self):
         """Check database health and performance"""
-        print(f"\n{Colors.BOLD}🗄️  Database Health{Colors.END}")
+        print(f"\n{Colors.BOLD}[DATABASE]  Database Health{Colors.END}")
         
         try:
             # Database file existence
             if self.db_path.exists():
                 db_size = self.db_path.stat().st_size / (1024 * 1024)  # MB
-                print(f"   Database File: {Colors.GREEN}Exists ({db_size:.1f}MB){Colors.END} ✅")
+                print(f"   Database File: {Colors.GREEN}Exists ({db_size:.1f}MB){Colors.END} [OK]")
                 self.add_score(5)
             else:
-                print(f"   Database File: {Colors.RED}Missing{Colors.END} ❌")
+                print(f"   Database File: {Colors.RED}Missing{Colors.END} [ERROR]")
                 self.add_score(0, 5)
                 return
             
@@ -228,10 +228,10 @@ class SystemHealthMonitor:
                 table_count = cursor.fetchone()[0]
                 query_time = (time.time() - start_time) * 1000  # ms
                 
-                print(f"   Connectivity: {Colors.GREEN}OK ({query_time:.1f}ms){Colors.END} ✅")
+                print(f"   Connectivity: {Colors.GREEN}OK ({query_time:.1f}ms){Colors.END} [OK]")
                 self.add_score(5)
                 
-                print(f"   Tables: {Colors.GREEN}{table_count} tables{Colors.END} ✅")
+                print(f"   Tables: {Colors.GREEN}{table_count} tables{Colors.END} [OK]")
                 self.add_score(5)
                 
                 # Check for data
@@ -239,34 +239,34 @@ class SystemHealthMonitor:
                 app_tables = cursor.fetchall()
                 
                 if app_tables:
-                    print(f"   App Tables: {Colors.GREEN}{len(app_tables)} found{Colors.END} ✅")
+                    print(f"   App Tables: {Colors.GREEN}{len(app_tables)} found{Colors.END} [OK]")
                     self.add_score(5)
                 else:
-                    print(f"   App Tables: {Colors.YELLOW}No app tables{Colors.END} ⚠️")
+                    print(f"   App Tables: {Colors.YELLOW}No app tables{Colors.END} [WARN]")
                     self.add_score(2, 5)
                 
                 conn.close()
                 
             except Exception as e:
-                print(f"   Connectivity: {Colors.RED}Failed - {e}{Colors.END} ❌")
+                print(f"   Connectivity: {Colors.RED}Failed - {e}{Colors.END} [ERROR]")
                 self.add_score(0, 15)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Database check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Database check failed: {e}{Colors.END}")
             self.add_score(0, 20)
     
     def check_network_connectivity(self):
         """Check network connectivity and ports"""
-        print(f"\n{Colors.BOLD}🌐 Network Connectivity{Colors.END}")
+        print(f"\n{Colors.BOLD}[NETWORK] Network Connectivity{Colors.END}")
         
         try:
             # Internet connectivity
             try:
                 socket.create_connection(("8.8.8.8", 53), timeout=3)
-                print(f"   Internet: {Colors.GREEN}Connected{Colors.END} ✅")
+                print(f"   Internet: {Colors.GREEN}Connected{Colors.END} [OK]")
                 self.add_score(5)
             except:
-                print(f"   Internet: {Colors.YELLOW}Offline{Colors.END} ⚠️")
+                print(f"   Internet: {Colors.YELLOW}Offline{Colors.END} [WARN]")
                 self.add_score(2, 5)
             
             # Port availability
@@ -284,19 +284,19 @@ class SystemHealthMonitor:
                     available_ports.append(port)
             
             if available_ports:
-                print(f"   Available Ports: {Colors.GREEN}{', '.join(map(str, available_ports))}{Colors.END} ✅")
+                print(f"   Available Ports: {Colors.GREEN}{', '.join(map(str, available_ports))}{Colors.END} [OK]")
                 self.add_score(5)
             else:
-                print(f"   Available Ports: {Colors.RED}All common ports busy{Colors.END} ❌")
+                print(f"   Available Ports: {Colors.RED}All common ports busy{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Network check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Network check failed: {e}{Colors.END}")
             self.add_score(0, 10)
     
     def check_file_permissions(self):
         """Check file system permissions"""
-        print(f"\n{Colors.BOLD}🔐 File Permissions{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] File Permissions{Colors.END}")
         
         try:
             # Test write permissions
@@ -306,10 +306,10 @@ class SystemHealthMonitor:
                 with open(test_file, 'w') as f:
                     f.write("test")
                 test_file.unlink()
-                print(f"   Write Access: {Colors.GREEN}OK{Colors.END} ✅")
+                print(f"   Write Access: {Colors.GREEN}OK{Colors.END} [OK]")
                 self.add_score(5)
             except Exception as e:
-                print(f"   Write Access: {Colors.RED}Failed - {e}{Colors.END} ❌")
+                print(f"   Write Access: {Colors.RED}Failed - {e}{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
             # Check critical directories
@@ -325,22 +325,22 @@ class SystemHealthMonitor:
                     accessible_dirs += 1
             
             if accessible_dirs == len(critical_dirs):
-                print(f"   Directory Access: {Colors.GREEN}All accessible{Colors.END} ✅")
+                print(f"   Directory Access: {Colors.GREEN}All accessible{Colors.END} [OK]")
                 self.add_score(5)
             elif accessible_dirs > 0:
-                print(f"   Directory Access: {Colors.YELLOW}{accessible_dirs}/{len(critical_dirs)} accessible{Colors.END} ⚠️")
+                print(f"   Directory Access: {Colors.YELLOW}{accessible_dirs}/{len(critical_dirs)} accessible{Colors.END} [WARN]")
                 self.add_score(3, 5)
             else:
-                print(f"   Directory Access: {Colors.RED}Issues detected{Colors.END} ❌")
+                print(f"   Directory Access: {Colors.RED}Issues detected{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Permission check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Permission check failed: {e}{Colors.END}")
             self.add_score(0, 10)
     
     def check_ml_models(self):
         """Check ML models availability"""
-        print(f"\n{Colors.BOLD}🤖 ML Models Status{Colors.END}")
+        print(f"\n{Colors.BOLD}[ROBOT] ML Models Status{Colors.END}")
         
         try:
             models_dir = self.project_root / "models"
@@ -349,16 +349,16 @@ class SystemHealthMonitor:
                 model_files = list(models_dir.glob("*.pkl"))
                 
                 if len(model_files) >= 20:  # Expected 26 models
-                    print(f"   Model Files: {Colors.GREEN}{len(model_files)} models available{Colors.END} ✅")
+                    print(f"   Model Files: {Colors.GREEN}{len(model_files)} models available{Colors.END} [OK]")
                     self.add_score(10)
                 elif len(model_files) > 0:
-                    print(f"   Model Files: {Colors.YELLOW}{len(model_files)} models (incomplete){Colors.END} ⚠️")
+                    print(f"   Model Files: {Colors.YELLOW}{len(model_files)} models (incomplete){Colors.END} [WARN]")
                     self.add_score(5, 10)
                 else:
-                    print(f"   Model Files: {Colors.RED}No models found{Colors.END} ❌")
+                    print(f"   Model Files: {Colors.RED}No models found{Colors.END} [ERROR]")
                     self.add_score(0, 10)
             else:
-                print(f"   Models Directory: {Colors.RED}Not found{Colors.END} ❌")
+                print(f"   Models Directory: {Colors.RED}Not found{Colors.END} [ERROR]")
                 self.add_score(0, 10)
             
             # Check ML dependencies
@@ -375,22 +375,22 @@ class SystemHealthMonitor:
                     pass
             
             if available_packages == len(ml_packages):
-                print(f"   ML Dependencies: {Colors.GREEN}All available{Colors.END} ✅")
+                print(f"   ML Dependencies: {Colors.GREEN}All available{Colors.END} [OK]")
                 self.add_score(5)
             elif available_packages > 0:
-                print(f"   ML Dependencies: {Colors.YELLOW}{available_packages}/{len(ml_packages)} available{Colors.END} ⚠️")
+                print(f"   ML Dependencies: {Colors.YELLOW}{available_packages}/{len(ml_packages)} available{Colors.END} [WARN]")
                 self.add_score(3, 5)
             else:
-                print(f"   ML Dependencies: {Colors.RED}Not installed{Colors.END} ❌")
+                print(f"   ML Dependencies: {Colors.RED}Not installed{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ ML check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] ML check failed: {e}{Colors.END}")
             self.add_score(0, 15)
     
     def check_log_files(self):
         """Check log files and recent activity"""
-        print(f"\n{Colors.BOLD}📋 Log Files Status{Colors.END}")
+        print(f"\n{Colors.BOLD}[LIST] Log Files Status{Colors.END}")
         
         try:
             logs_dir = self.project_root / "logs"
@@ -399,7 +399,7 @@ class SystemHealthMonitor:
                 log_files = list(logs_dir.glob("*.log"))
                 
                 if log_files:
-                    print(f"   Log Files: {Colors.GREEN}{len(log_files)} files found{Colors.END} ✅")
+                    print(f"   Log Files: {Colors.GREEN}{len(log_files)} files found{Colors.END} [OK]")
                     self.add_score(5)
                     
                     # Check recent activity
@@ -411,25 +411,25 @@ class SystemHealthMonitor:
                             recent_logs += 1
                     
                     if recent_logs > 0:
-                        print(f"   Recent Activity: {Colors.GREEN}{recent_logs} files updated today{Colors.END} ✅")
+                        print(f"   Recent Activity: {Colors.GREEN}{recent_logs} files updated today{Colors.END} [OK]")
                         self.add_score(5)
                     else:
-                        print(f"   Recent Activity: {Colors.YELLOW}No recent activity{Colors.END} ⚠️")
+                        print(f"   Recent Activity: {Colors.YELLOW}No recent activity{Colors.END} [WARN]")
                         self.add_score(2, 5)
                 else:
-                    print(f"   Log Files: {Colors.YELLOW}No log files{Colors.END} ⚠️")
+                    print(f"   Log Files: {Colors.YELLOW}No log files{Colors.END} [WARN]")
                     self.add_score(2, 5)
             else:
-                print(f"   Logs Directory: {Colors.RED}Not found{Colors.END} ❌")
+                print(f"   Logs Directory: {Colors.RED}Not found{Colors.END} [ERROR]")
                 self.add_score(0, 5)
             
         except Exception as e:
-            print(f"   {Colors.RED}❌ Log check failed: {e}{Colors.END}")
+            print(f"   {Colors.RED}[ERROR] Log check failed: {e}{Colors.END}")
             self.add_score(0, 10)
     
     def generate_health_report(self):
         """Generate comprehensive health report"""
-        print(f"\n{Colors.BOLD}📊 HEALTH REPORT{Colors.END}")
+        print(f"\n{Colors.BOLD}[HEALTH] HEALTH REPORT{Colors.END}")
         print("=" * 60)
         
         health_percentage = (self.health_score / self.max_score * 100) if self.max_score > 0 else 0
@@ -439,30 +439,30 @@ class SystemHealthMonitor:
         
         # Health status
         if health_percentage >= 90:
-            status = f"{Colors.GREEN}EXCELLENT{Colors.END} 🎉"
+            status = f"{Colors.GREEN}EXCELLENT{Colors.END} [SUCCESS]"
             recommendation = "System is running optimally"
         elif health_percentage >= 75:
-            status = f"{Colors.GREEN}GOOD{Colors.END} ✅"
+            status = f"{Colors.GREEN}GOOD{Colors.END} [OK]"
             recommendation = "System is healthy with minor issues"
         elif health_percentage >= 60:
-            status = f"{Colors.YELLOW}FAIR{Colors.END} ⚠️"
+            status = f"{Colors.YELLOW}FAIR{Colors.END} [WARN]"
             recommendation = "Some issues need attention"
         elif health_percentage >= 40:
-            status = f"{Colors.RED}POOR{Colors.END} ❌"
+            status = f"{Colors.RED}POOR{Colors.END} [ERROR]"
             recommendation = "Multiple issues require immediate attention"
         else:
-            status = f"{Colors.RED}CRITICAL{Colors.END} 🚨"
+            status = f"{Colors.RED}CRITICAL{Colors.END} [EMOJI]"
             recommendation = "System needs immediate maintenance"
         
         print(f"Status: {status}")
         print(f"Recommendation: {recommendation}")
         
         # Performance metrics
-        print(f"\n{Colors.BOLD}📈 Performance Metrics:{Colors.END}")
-        print(f"   • System Resources: {'✅' if health_percentage >= 70 else '⚠️'}")
-        print(f"   • Application Health: {'✅' if health_percentage >= 70 else '⚠️'}")
-        print(f"   • Database Performance: {'✅' if health_percentage >= 70 else '⚠️'}")
-        print(f"   • Network Connectivity: {'✅' if health_percentage >= 70 else '⚠️'}")
+        print(f"\n{Colors.BOLD}[CHART] Performance Metrics:{Colors.END}")
+        print(f"   • System Resources: {'[OK]' if health_percentage >= 70 else '[WARN]'}")
+        print(f"   • Application Health: {'[OK]' if health_percentage >= 70 else '[WARN]'}")
+        print(f"   • Database Performance: {'[OK]' if health_percentage >= 70 else '[WARN]'}")
+        print(f"   • Network Connectivity: {'[OK]' if health_percentage >= 70 else '[WARN]'}")
         
         return health_percentage >= 70
     
@@ -487,7 +487,7 @@ class SystemHealthMonitor:
             except Exception as e:
                 check_name = check_function.__name__.replace('check_', '').replace('_', ' ').title()
                 print(f"\n{Colors.BOLD}{check_name}{Colors.END}")
-                print(f"   {Colors.RED}❌ Health check failed: {e}{Colors.END}")
+                print(f"   {Colors.RED}[ERROR] Health check failed: {e}{Colors.END}")
                 self.add_score(0, 10)
         
         return self.generate_health_report()
@@ -499,20 +499,20 @@ def main():
     try:
         success = monitor.run_health_check()
         
-        print(f"\n{Colors.BOLD}🕐 Health Check Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
+        print(f"\n{Colors.BOLD}[EMOJI] Health Check Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
         
         if success:
-            print(f"\n{Colors.GREEN}✅ System health is good!{Colors.END}")
+            print(f"\n{Colors.GREEN}[OK] System health is good!{Colors.END}")
             sys.exit(0)
         else:
-            print(f"\n{Colors.YELLOW}⚠️  System health needs attention{Colors.END}")
+            print(f"\n{Colors.YELLOW}[WARN]  System health needs attention{Colors.END}")
             sys.exit(1)
             
     except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}⚠️  Health check cancelled by user{Colors.END}")
+        print(f"\n{Colors.YELLOW}[WARN]  Health check cancelled by user{Colors.END}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{Colors.RED}❌ Health check error: {e}{Colors.END}")
+        print(f"\n{Colors.RED}[ERROR] Health check error: {e}{Colors.END}")
         sys.exit(1)
 
 if __name__ == "__main__":

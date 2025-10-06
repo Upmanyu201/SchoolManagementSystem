@@ -274,6 +274,26 @@ class SecureLicenseService:
             activation.error_message = message
             activation.save()
             return False, message
+    
+    @classmethod
+    def check_demo_limits(cls, module_name, action_type):
+        """Check if action is allowed under demo limitations"""
+        demo_status = cls.get_demo_status_secure()
+        
+        if demo_status.is_licensed:
+            return True, "Licensed version - no limits"
+        
+        if not demo_status.is_active:
+            return False, "Demo period has expired"
+        
+        # Module-specific limits
+        if module_name == 'messaging':
+            if action_type == 'bulk_sms':
+                return False, "Bulk messaging requires licensed version"
+            elif action_type == 'daily_sms_count':
+                return True, f"Demo: {demo_status.days_remaining} days remaining"
+        
+        return True, f"Demo: {demo_status.days_remaining} days remaining"
 
 # Backward compatibility wrapper
 class LicenseService(SecureLicenseService):

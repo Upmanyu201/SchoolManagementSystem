@@ -1,7 +1,6 @@
 @echo off
 chcp 65001 >nul
 title School Management System - Production Mode
-color 0C
 
 echo ========================================
 echo   PRODUCTION MODE STARTUP

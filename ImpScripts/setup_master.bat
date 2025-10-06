@@ -3,13 +3,13 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 title School Management System - Master Setup
 
-:: Colors for output
-set "GREEN=[92m"
-set "RED=[91m"
-set "YELLOW=[93m"
-set "BLUE=[94m"
-set "CYAN=[96m"
-set "RESET=[0m"
+:: Colors disabled for CMD compatibility
+set "GREEN="
+set "RED="
+set "YELLOW="
+set "BLUE="
+set "CYAN="
+set "RESET="
 
 echo %CYAN%
 echo ================================================================
@@ -80,8 +80,8 @@ if %errorlevel% neq 0 (
 
 call python install_python.py
 call python setup_environment.py
+call python install_psutil.py
 call python database_setup.py
-call python install_dependencies.py
 call python run_tests.py
 echo %GREEN%[OK] Complete setup finished!%RESET%
 pause

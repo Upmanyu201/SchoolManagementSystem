@@ -3,13 +3,13 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 title School Management System - Quick Start
 
-:: Colors for output
-set "GREEN=[92m"
-set "RED=[91m"
-set "YELLOW=[93m"
-set "BLUE=[94m"
-set "CYAN=[96m"
-set "RESET=[0m"
+:: Colors disabled for CMD compatibility
+set "GREEN="
+set "RED="
+set "YELLOW="
+set "BLUE="
+set "CYAN="
+set "RESET="
 
 echo %CYAN%
 echo ================================================================
@@ -27,6 +27,16 @@ cd /d "%~dp0.."
 if exist "venv\Scripts\python.exe" (
     echo %GREEN%[OK] Virtual environment found%RESET%
     set "PYTHON_EXE=venv\Scripts\python.exe"
+    
+    :: Check if psutil is installed
+    %PYTHON_EXE% -c "import psutil" >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo %YELLOW%[WARN] psutil not found, installing...%RESET%
+        %PYTHON_EXE% ImpScripts\install_psutil.py
+        if %errorlevel% neq 0 (
+            echo %RED%[ERROR] Failed to install psutil%RESET%
+        )
+    )
 ) else (
     echo %YELLOW%[WARN] Virtual environment not found, using system Python%RESET%
     set "PYTHON_EXE=python"

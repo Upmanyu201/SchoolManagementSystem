@@ -13,13 +13,13 @@ import winreg
 from pathlib import Path
 
 class Colors:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
+    GREEN = ''
+    RED = ''
+    YELLOW = ''
+    BLUE = ''
+    CYAN = ''
+    BOLD = ''
+    END = ''
 
 class PythonInstaller:
     def __init__(self):

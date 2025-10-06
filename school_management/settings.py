@@ -95,6 +95,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'demo.middleware.DemoMiddleware',  # Demo license checking
+    'demo.security_monitor.SecurityMonitoringMiddleware',  # SECURITY: Anti-piracy monitoring
     'users.middleware.ModuleAccessMiddleware',  # Module access control
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Removed heavy middleware for performance

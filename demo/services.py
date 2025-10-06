@@ -1,9 +1,17 @@
+# DEPRECATED: This file is kept for backward compatibility only
+# The secure license system is now in secure_license_service.py
+
 import hashlib
 import platform
 from django.utils import timezone
 from .models import DemoStatus, LicenseActivation
+from .secure_license_service import SecureLicenseService
 
-class LicenseService:
+# Use secure service by default
+LicenseService = SecureLicenseService
+
+# Legacy class for backward compatibility
+class LegacyLicenseService:
     """Centralized license validation and management"""
     
     SECRET_KEY = "SMS_2024_SECURE_KEY"  # Change in production

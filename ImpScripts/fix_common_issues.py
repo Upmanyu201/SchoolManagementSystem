@@ -13,13 +13,13 @@ import urllib.request
 from pathlib import Path
 
 class Colors:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
+    GREEN = ''
+    RED = ''
+    YELLOW = ''
+    BLUE = ''
+    CYAN = ''
+    BOLD = ''
+    END = ''
 
 class CommonIssuesFixer:
     def __init__(self):
@@ -217,7 +217,7 @@ class CommonIssuesFixer:
     
     def check_dependency_issues(self):
         """Check and fix dependency issues"""
-        print(f"\n{Colors.BOLD}[EMOJI] Checking dependency issues...{Colors.END}")
+        print(f"\n{Colors.BOLD}[DEPS] Checking dependency issues...{Colors.END}")
         
         requirements_file = self.project_root / "requirements.txt"
         
@@ -234,22 +234,28 @@ class CommonIssuesFixer:
                 self.issues_found.append("Django not installed")
                 return self.fix_dependencies()
             
-            # Check other critical packages
-            critical_packages = ['PIL', 'decouple', 'whitenoise']
+            # Check other critical packages including psutil
+            critical_packages = {
+                'PIL': 'Pillow',
+                'decouple': 'python-decouple', 
+                'whitenoise': 'whitenoise',
+                'psutil': 'psutil',
+                'pathlib': 'pathlib'  # Usually built-in
+            }
             missing_packages = []
             
-            for package in critical_packages:
+            for import_name, package_name in critical_packages.items():
                 try:
-                    result = subprocess.run([self.python_exe, '-c', f'import {package}'], 
+                    result = subprocess.run([self.python_exe, '-c', f'import {import_name}'], 
                                           capture_output=True, text=True, timeout=5)
                     if result.returncode != 0:
-                        missing_packages.append(package)
+                        missing_packages.append(package_name)
                 except:
-                    missing_packages.append(package)
+                    missing_packages.append(package_name)
             
             if missing_packages:
                 self.issues_found.append(f"Missing packages: {', '.join(missing_packages)}")
-                return self.fix_dependencies()
+                return self.fix_dependencies(missing_packages)
             
             print(f"   {Colors.GREEN}[OK] All dependencies are installed{Colors.END}")
             return True
@@ -258,11 +264,27 @@ class CommonIssuesFixer:
             print(f"   {Colors.RED}[ERROR] Dependency check failed: {e}{Colors.END}")
             return self.fix_dependencies()
     
-    def fix_dependencies(self):
+    def fix_dependencies(self, missing_packages=None):
         """Fix dependency issues"""
-        print(f"   [TOOL] Fixing dependencies...")
+        print(f"   [FIX] Fixing dependencies...")
         
         try:
+            # If specific packages are missing, install them first
+            if missing_packages:
+                for package in missing_packages:
+                    try:
+                        print(f"   [INSTALL] Installing {package}...")
+                        result = subprocess.run([
+                            self.python_exe, '-m', 'pip', 'install', package
+                        ], capture_output=True, text=True, timeout=300)
+                        
+                        if result.returncode == 0:
+                            print(f"   [OK] {package} installed")
+                        else:
+                            print(f"   [WARN] {package} installation failed")
+                    except Exception as e:
+                        print(f"   [ERROR] {package} error: {e}")
+            
             requirements_file = self.project_root / "requirements.txt"
             
             if requirements_file.exists():
@@ -283,7 +305,8 @@ class CommonIssuesFixer:
                 "Pillow",
                 "python-decouple",
                 "whitenoise",
-                "djangorestframework"
+                "djangorestframework",
+                "psutil==7.0.0"  # Add psutil specifically
             ]
             
             for package in critical_packages:
@@ -293,7 +316,7 @@ class CommonIssuesFixer:
                     ], capture_output=True, text=True, timeout=300)
                     
                     if result.returncode == 0:
-                        print(f"   [EMOJI] {package} installed")
+                        print(f"   [OK] {package} installed")
                 except:
                     pass
             

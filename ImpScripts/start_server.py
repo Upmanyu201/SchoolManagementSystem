@@ -12,20 +12,28 @@ import threading
 import time
 import webbrowser
 import signal
-import psutil
 from datetime import datetime
+from pathlib import Path
+
+# Try to import psutil, fallback if not available
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    print("[WARN] psutil not available - using basic network detection")
 
 class Colors:
-    """ANSI color codes for beautiful terminal output"""
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
+    """Disabled for CMD compatibility"""
+    HEADER = ''
+    BLUE = ''
+    CYAN = ''
+    GREEN = ''
+    YELLOW = ''
+    RED = ''
+    BOLD = ''
+    UNDERLINE = ''
+    END = ''
 
 class SchoolServerManager:
     def __init__(self):
@@ -75,21 +83,38 @@ class SchoolServerManager:
         """Detect all available network interfaces"""
         interfaces = []
         
-        try:
-            for interface_name, interface_addresses in psutil.net_if_addrs().items():
-                for address in interface_addresses:
-                    if address.family == socket.AF_INET:  # IPv4
-                        ip = address.address
-                        if ip != '127.0.0.1' and not ip.startswith('169.254'):
-                            interface_type = self.detect_interface_type(interface_name, ip)
-                            interfaces.append({
-                                'name': interface_name,
-                                'ip': ip,
-                                'type': interface_type,
-                                'netmask': address.netmask
-                            })
-        except Exception as e:
-            print(f"{Colors.RED}[ERROR] Error detecting network interfaces: {e}{Colors.END}")
+        if PSUTIL_AVAILABLE:
+            try:
+                for interface_name, interface_addresses in psutil.net_if_addrs().items():
+                    for address in interface_addresses:
+                        if address.family == socket.AF_INET:  # IPv4
+                            ip = address.address
+                            if ip != '127.0.0.1' and not ip.startswith('169.254'):
+                                interface_type = self.detect_interface_type(interface_name, ip)
+                                interfaces.append({
+                                    'name': interface_name,
+                                    'ip': ip,
+                                    'type': interface_type,
+                                    'netmask': address.netmask
+                                })
+            except Exception as e:
+                print(f"{Colors.RED}[ERROR] Error detecting network interfaces: {e}{Colors.END}")
+        else:
+            # Fallback: Basic network detection without psutil
+            try:
+                # Get local IP by connecting to a remote address
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.connect(("8.8.8.8", 80))
+                    local_ip = s.getsockname()[0]
+                    if local_ip != '127.0.0.1':
+                        interfaces.append({
+                            'name': 'Default Network',
+                            'ip': local_ip,
+                            'type': '[NETWORK] Network',
+                            'netmask': '255.255.255.0'
+                        })
+            except Exception as e:
+                print(f"{Colors.YELLOW}[WARN] Could not detect network: {e}{Colors.END}")
             
         return interfaces
     

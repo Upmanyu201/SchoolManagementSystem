@@ -1,7 +1,6 @@
 @echo off
 chcp 65001 >nul
 title School Management System - Smart Launcher
-color 0B
 
 :: Change to project root directory
 cd /d "%~dp0.."

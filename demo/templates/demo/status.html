@@ -122,15 +122,15 @@
                                         <input 
                                             type="text" 
                                             id="licenseKey"
-                                            placeholder="SMS-9E84-874F-EE66"
-                                            class="w-full px-4 py-4 pr-12 border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-center text-lg bg-white"
-                                            maxlength="19"
+                                            placeholder="SMS-FULL-eyJjaWQiOiAiVEVTVCIsICJleHAi..."
+                                            class="w-full px-4 py-4 pr-12 border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm bg-white"
+                                            maxlength="200"
                                         >
                                         <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
                                             <i data-lucide="key" class="w-5 h-5 text-blue-400"></i>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-blue-600 mt-1">Paste your generated license key here</div>
+                                    <div class="text-xs text-blue-600 mt-1">Format: SMS-FULL-{encrypted_data} (enterprise license)</div>
                                 </div>
                                 
                                 <button 
@@ -456,9 +456,9 @@ document.getElementById('licenseForm')?.addEventListener('submit', async functio
     }
     
     // Validate format
-    const licensePattern = /^SMS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-    if (!licensePattern.test(licenseKey.toUpperCase())) {
-        showMessage('Invalid license key format. Use: SMS-XXXX-XXXX-XXXX', 'error');
+    const licensePattern = /^SMS-FULL-[A-Za-z0-9_-]+$/;
+    if (!licensePattern.test(licenseKey)) {
+        showMessage('Invalid license key format. Use: SMS-FULL-{encrypted_data}', 'error');
         return;
     }
     
@@ -484,7 +484,7 @@ document.getElementById('licenseForm')?.addEventListener('submit', async functio
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                license_key: licenseKey.toUpperCase()
+                license_key: licenseKey
             })
         });
         
@@ -520,38 +520,21 @@ document.getElementById('licenseForm')?.addEventListener('submit', async functio
     }
 });
 
-// Format license key input
+// Format license key input (SMS-FULL format)
 document.getElementById('licenseKey')?.addEventListener('input', function(e) {
-    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    let value = e.target.value.trim();
     
-    // Remove existing dashes to reformat
-    let cleanValue = value.replace(/-/g, '');
-    
-    // Ensure it starts with SMS
-    if (cleanValue.length > 0 && !cleanValue.startsWith('SMS')) {
-        if (cleanValue.length <= 3) {
-            cleanValue = 'SMS'.substring(0, cleanValue.length);
-        } else {
-            cleanValue = 'SMS' + cleanValue.substring(3);
+    // Ensure it starts with SMS-FULL-
+    if (value.length > 0 && !value.startsWith('SMS-FULL-')) {
+        if (value.startsWith('SMS-')) {
+            // Convert old format to new format prefix
+            value = 'SMS-FULL-' + value.substring(4);
+        } else if (!value.startsWith('SMS')) {
+            value = 'SMS-FULL-' + value;
         }
     }
     
-    // Limit to 15 characters (SMS + 12 digits/letters)
-    cleanValue = cleanValue.substring(0, 15);
-    
-    // Add dashes at appropriate positions
-    let formatted = cleanValue;
-    if (cleanValue.length > 3) {
-        formatted = cleanValue.substring(0, 3) + '-' + cleanValue.substring(3);
-    }
-    if (cleanValue.length > 7) {
-        formatted = cleanValue.substring(0, 3) + '-' + cleanValue.substring(3, 7) + '-' + cleanValue.substring(7);
-    }
-    if (cleanValue.length > 11) {
-        formatted = cleanValue.substring(0, 3) + '-' + cleanValue.substring(3, 7) + '-' + cleanValue.substring(7, 11) + '-' + cleanValue.substring(11);
-    }
-    
-    e.target.value = formatted;
+    e.target.value = value;
 });
 
 // Show message function
@@ -707,12 +690,12 @@ function showDetailedHelp() {
                 <p>→ Install Python 3.7+ from python.org</p>
                 
                 <p><strong>"Invalid license key format"</strong></p>
-                <p>→ Ensure format is exactly: SMS-XXXX-XXXX-XXXX</p>
+                <p>→ Ensure format is exactly: SMS-FULL-{encrypted_data}</p>
             </div>
             
             <div class="code">
                 <strong>Your Stable Machine ID:</strong> {{ machine_id }}<br>
-                <strong>Expected License Format:</strong> SMS-XXXX-XXXX-XXXX<br>
+                <strong>Expected License Format:</strong> SMS-FULL-{encrypted_data}<br>
                 <strong>Note:</strong> Machine ID is hardware-based and stable
             </div>
             

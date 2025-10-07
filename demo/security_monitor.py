@@ -114,7 +114,7 @@ class SecurityMonitor:
             
             # Check for suspicious activation patterns
             recent_activations = LicenseActivation.objects.filter(
-                created_at__gte=timezone.now() - timedelta(hours=1)
+                attempted_at__gte=timezone.now() - timedelta(hours=1)
             ).count()
             
             if recent_activations > 5:
@@ -127,7 +127,7 @@ class SecurityMonitor:
             # Check for failed activations with same license key
             failed_attempts = LicenseActivation.objects.filter(
                 success=False,
-                created_at__gte=timezone.now() - timedelta(days=1)
+                attempted_at__gte=timezone.now() - timedelta(days=1)
             ).values('license_key_attempted').distinct().count()
             
             if failed_attempts > 10:

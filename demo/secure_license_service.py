@@ -111,7 +111,8 @@ class SecureLicenseService:
             'cid': customer_id,
             'ts': timestamp,
             'exp': expiry,
-            'v': '2.0'  # Version
+            'v': '2.0',  # Version
+            'salt': secrets.token_hex(8)  # Add salt for security
         }
         
         # Sign with HMAC
@@ -128,12 +129,8 @@ class SecureLicenseService:
             f"{payload_str}|{signature}".encode()
         ).decode().replace('=', '').replace('+', '-').replace('/', '_')
         
-        # Format as SMS-XXXX-XXXX-XXXX-XXXX
-        chunks = [license_data[i:i+4] for i in range(0, min(len(license_data), 16), 4)]
-        while len(chunks) < 4:
-            chunks.append('0000')
-        
-        return f"SMS-{'-'.join(chunks[:4])}"
+        # Format as SMS-FULL-{full_data} (new secure format)
+        return f"SMS-FULL-{license_data}"
     
     @classmethod
     def validate_secure_license(cls, license_key):
@@ -141,20 +138,36 @@ class SecureLicenseService:
         
         try:
             # Parse license format
-            if not license_key.startswith('SMS-'):
+            if license_key.startswith('SMS-FULL-'):
+                # New full format
+                license_data = license_key[9:]  # Remove 'SMS-FULL-'
+            elif license_key.startswith('SMS-'):
+                # Legacy format - not supported
+                return False, "Legacy format not supported. Please regenerate license."
+            else:
                 return False, "Invalid license format"
-            
-            # Extract license data
-            license_data = license_key[4:].replace('-', '')
             
             # Decode
             import base64
             try:
-                decoded = base64.b64decode(
-                    license_data.replace('-', '+').replace('_', '/') + '=='
-                ).decode()
-            except:
-                return False, "Invalid license encoding"
+                # Restore base64 padding
+                padding_needed = 4 - (len(license_data) % 4)
+                if padding_needed != 4:
+                    license_data += '=' * padding_needed
+                
+                # Restore base64 characters
+                license_data = license_data.replace('-', '+').replace('_', '/')
+                
+                # Decode with proper error handling
+                decoded_bytes = base64.b64decode(license_data)
+                decoded = decoded_bytes.decode('utf-8', errors='ignore')
+                
+                # Validate decoded data is not empty
+                if not decoded or len(decoded.strip()) == 0:
+                    return False, "License data is empty or corrupted"
+                    
+            except Exception as e:
+                return False, f"Invalid license encoding: {str(e)}"
             
             # Split payload and signature
             parts = decoded.split('|')

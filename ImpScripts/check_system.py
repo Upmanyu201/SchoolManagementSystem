@@ -1,292 +1,145 @@
 #!/usr/bin/env python3
-"""
-[CHECK] System Requirements Checker
-Validates Windows system for School Management System deployment
-"""
+# -*- coding: utf-8 -*-
+"""System Requirements Checker"""
 
 import os
 import sys
 import platform
 import subprocess
-import winreg
-import psutil
+import shutil
 from pathlib import Path
 
-class Colors:
-    GREEN = ''
-    RED = ''
-    YELLOW = ''
-    BLUE = ''
-    CYAN = ''
-    BOLD = ''
-    END = ''
+def print_header(title):
+    print("\n" + "=" * 70)
+    print(f"  {title}")
+    print("=" * 70)
 
-class SystemChecker:
-    def __init__(self):
-        self.requirements = {
-            'os': 'Windows 10/11',
-            'python': '3.8+',
-            'memory': '4GB',
-            'disk': '2GB',
-            'network': 'Required'
-        }
-        self.issues = []
-        self.warnings = []
-        
-    def print_header(self):
-        print(f"{Colors.CYAN}================================================================")
-        print(f"                                                                ")
-        print(f"  SYSTEM REQUIREMENTS CHECKER                                 ")
-        print(f"  Validating Windows Environment                              ")
-        print(f"                                                                ")
-        print(f"================================================================{Colors.END}")
-        
-    def check_windows_version(self):
-        """Check Windows version compatibility"""
-        print(f"\n{Colors.BOLD}[OS] Operating System Check{Colors.END}")
-        
-        try:
-            version = platform.version()
-            release = platform.release()
-            
-            print(f"   OS: {Colors.GREEN}{platform.system()} {release}{Colors.END}")
-            print(f"   Version: {Colors.GREEN}{version}{Colors.END}")
-            
-            # Check if Windows 10/11
-            if platform.system() != 'Windows':
-                self.issues.append("[ERROR] This system is designed for Windows 10/11")
-                return False
-                
-            # Check Windows version
-            major_version = int(platform.version().split('.')[0])
-            if major_version < 10:
-                self.issues.append("[ERROR] Windows 10 or later required")
-                return False
-                
-            print(f"   {Colors.GREEN}[OK] Windows version compatible{Colors.END}")
-            return True
-            
-        except Exception as e:
-            self.issues.append(f"[ERROR] Could not detect Windows version: {e}")
-            return False
+def check_python():
+    """Check Python version"""
+    print("\n🔍 Checking Python...")
+    version = sys.version_info
+    print(f"   System Version: {version.major}.{version.minor}.{version.micro}")
+    print(f"   System Path: {sys.executable}")
     
-    def check_python_installation(self):
-        """Check Python installation and version"""
-        print(f"\n{Colors.BOLD}[PYTHON] Python Installation Check{Colors.END}")
-        
-        try:
-            # Check current Python version
-            version = sys.version_info
-            version_str = f"{version.major}.{version.minor}.{version.micro}"
-            
-            print(f"   Current Python: {Colors.GREEN}{version_str}{Colors.END}")
-            print(f"   Executable: {Colors.GREEN}{sys.executable}{Colors.END}")
-            
-            # Check version compatibility
-            if version.major < 3 or (version.major == 3 and version.minor < 8):
-                self.issues.append("[ERROR] Python 3.8+ required")
-                return False
-                
-            # Check pip availability
-            try:
-                import pip
-                print(f"   {Colors.GREEN}[OK] pip available{Colors.END}")
-            except ImportError:
-                self.warnings.append("[WARN] pip not found - will install")
-                
-            print(f"   {Colors.GREEN}[OK] Python version compatible{Colors.END}")
-            return True
-            
-        except Exception as e:
-            self.issues.append(f"[ERROR] Python check failed: {e}")
-            return False
+    # Check venv Python
+    venv_python = Path("venv") / "Scripts" / "python.exe" if platform.system() == "Windows" else Path("venv") / "bin" / "python"
+    if venv_python.exists():
+        print(f"   ✅ Virtual Env: {venv_python}")
+    else:
+        print(f"   ⚠️  Virtual Env: Not found")
     
-    def check_system_resources(self):
-        """Check system memory and disk space"""
-        print(f"\n{Colors.BOLD}[RESOURCES] System Resources Check{Colors.END}")
-        
-        try:
-            # Memory check
-            memory = psutil.virtual_memory()
-            memory_gb = memory.total / (1024**3)
-            
-            print(f"   RAM: {Colors.GREEN}{memory_gb:.1f} GB{Colors.END}")
-            
-            if memory_gb < 4:
-                self.warnings.append("[WARN] Less than 4GB RAM - may affect performance")
-            else:
-                print(f"   {Colors.GREEN}[OK] Sufficient RAM{Colors.END}")
-            
-            # Disk space check
-            disk = psutil.disk_usage('.')
-            free_gb = disk.free / (1024**3)
-            
-            print(f"   Free Disk: {Colors.GREEN}{free_gb:.1f} GB{Colors.END}")
-            
-            if free_gb < 2:
-                self.issues.append("[ERROR] Less than 2GB free disk space")
-                return False
-            else:
-                print(f"   {Colors.GREEN}[OK] Sufficient disk space{Colors.END}")
-                
-            return True
-            
-        except Exception as e:
-            self.warnings.append(f"[WARN] Resource check failed: {e}")
-            return True
+    if version >= (3, 8):
+        print("   ✅ Python version compatible (3.8+)")
+        return True
     
-    def check_network_connectivity(self):
-        """Check network connectivity"""
-        print(f"\n{Colors.BOLD}[NETWORK] Network Connectivity Check{Colors.END}")
-        
-        try:
-            # Check if connected to any network
-            import socket
-            
-            # Try to connect to a reliable server
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)
-            
-            try:
-                result = sock.connect_ex(('8.8.8.8', 53))
-                if result == 0:
-                    print(f"   {Colors.GREEN}[OK] Internet connectivity available{Colors.END}")
-                    return True
-                else:
-                    self.warnings.append("[WARN] No internet - offline mode only")
-                    return True
-            finally:
-                sock.close()
-                
-        except Exception as e:
-            self.warnings.append(f"[WARN] Network check failed: {e}")
+    print(f"   ❌ Python {version.major}.{version.minor} too old (requires 3.8+)")
+    return False
+
+def check_pip():
+    """Check pip"""
+    print("\n🔍 Checking pip...")
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            encoding='utf-8',
+            errors='replace'
+        )
+        if result.returncode == 0:
+            print(f"   ✅ {result.stdout.strip()}")
             return True
-    
-    def check_required_tools(self):
-        """Check for required development tools"""
-        print(f"\n{Colors.BOLD}[TOOLS] Development Tools Check{Colors.END}")
-        
-        tools_status = {}
-        
-        # Check Git
+    except Exception as e:
+        print(f"   ❌ pip check failed: {e}")
+    return False
+
+def check_git():
+    """Check Git (optional)"""
+    print("\n🔍 Checking Git...")
+    if shutil.which("git"):
         try:
-            result = subprocess.run(['git', '--version'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                tools_status['git'] = True
-                print(f"   Git: {Colors.GREEN}[OK] Available{Colors.END}")
-            else:
-                tools_status['git'] = False
-        except:
-            tools_status['git'] = False
-            self.warnings.append("[WARN] Git not found - manual download may be needed")
-        
-        # Check Visual C++ Redistributable
-        try:
-            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
-                               r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64")
-            tools_status['vcredist'] = True
-            print(f"   Visual C++ Redistributable: {Colors.GREEN}[OK] Available{Colors.END}")
-            winreg.CloseKey(key)
-        except:
-            tools_status['vcredist'] = False
-            self.warnings.append("[WARN] Visual C++ Redistributable may be needed for some packages")
-        
-        return tools_status
+            result = subprocess.run(
+                ["git", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                encoding='utf-8',
+                errors='replace'
+            )
+            print(f"   ✅ {result.stdout.strip()}")
+            return True
+        except Exception:
+            pass
+    print("   ⚠️  Git not found (optional)")
+    return False
+
+def check_project_files():
+    """Check required project files"""
+    print("\n🔍 Checking Project Files...")
     
-    def check_project_structure(self):
-        """Check if we're in the correct project directory"""
-        print(f"\n{Colors.BOLD}[PROJECT] Project Structure Check{Colors.END}")
-        
-        required_files = [
-            'manage.py',
-            'requirements.txt',
-            'config/settings.py'
-        ]
-        
-        missing_files = []
-        for file_path in required_files:
-            if not Path(file_path).exists():
-                missing_files.append(file_path)
-        
-        if missing_files:
-            print(f"   {Colors.RED}[ERROR] Missing files: {', '.join(missing_files)}{Colors.END}")
-            self.issues.append("[ERROR] Not in correct project directory")
-            return False
+    required = ["manage.py", "requirements.txt"]
+    all_found = True
+    
+    for file in required:
+        if Path(file).exists():
+            print(f"   ✅ {file}")
         else:
-            print(f"   {Colors.GREEN}[OK] Project structure valid{Colors.END}")
-            return True
+            print(f"   ❌ {file} not found")
+            all_found = False
     
-    def generate_report(self):
-        """Generate final system check report"""
-        print(f"\n{Colors.BOLD}[REPORT] SYSTEM CHECK REPORT{Colors.END}")
-        print("=" * 60)
-        
-        if not self.issues and not self.warnings:
-            print(f"{Colors.GREEN}[SUCCESS] EXCELLENT! Your system is ready for deployment{Colors.END}")
-            print(f"{Colors.GREEN}[OK] All requirements met{Colors.END}")
-            return True
-        
-        if self.issues:
-            print(f"{Colors.RED}[ERROR] CRITICAL ISSUES FOUND:{Colors.END}")
-            for issue in self.issues:
-                print(f"   {Colors.RED}{issue}{Colors.END}")
-            print()
-        
-        if self.warnings:
-            print(f"{Colors.YELLOW}[WARN] WARNINGS:{Colors.END}")
-            for warning in self.warnings:
-                print(f"   {Colors.YELLOW}{warning}{Colors.END}")
-            print()
-        
-        if self.issues:
-            print(f"{Colors.RED}[STOP] Please fix critical issues before proceeding{Colors.END}")
-            return False
-        else:
-            print(f"{Colors.YELLOW}[CAUTION] System ready with warnings - proceed with caution{Colors.END}")
-            return True
-    
-    def run_full_check(self):
-        """Run complete system check"""
-        self.print_header()
-        
-        checks = [
-            self.check_windows_version,
-            self.check_python_installation,
-            self.check_system_resources,
-            self.check_network_connectivity,
-            self.check_required_tools,
-            self.check_project_structure
-        ]
-        
-        for check in checks:
-            try:
-                check()
-            except Exception as e:
-                self.issues.append(f"[ERROR] Check failed: {e}")
-        
-        return self.generate_report()
+    return all_found
 
 def main():
-    """Main execution function"""
-    checker = SystemChecker()
+    """Run all checks"""
+    print_header("SYSTEM REQUIREMENTS CHECK")
+    print(f"Platform: {platform.system()} {platform.release()}")
+    print(f"Working Directory: {os.getcwd()}")
     
-    try:
-        success = checker.run_full_check()
-        
-        if success:
-            print(f"\n{Colors.GREEN}[READY] Ready to proceed with installation!{Colors.END}")
-            sys.exit(0)
-        else:
-            print(f"\n{Colors.RED}[STOP] Please resolve issues before continuing{Colors.END}")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}[CANCELLED] System check cancelled by user{Colors.END}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n{Colors.RED}[ERROR] System check failed: {e}{Colors.END}")
-        sys.exit(1)
+    checks = [
+        ("Python Version", check_python, True),
+        ("pip Installation", check_pip, True),
+        ("Git Installation", check_git, False),
+        ("Project Files", check_project_files, True)
+    ]
+    
+    passed = 0
+    required_passed = 0
+    required_total = 0
+    
+    for name, func, required in checks:
+        result = func()
+        if required:
+            required_total += 1
+            if result:
+                required_passed += 1
+                passed += 1
+        elif result:
+            passed += 1
+    
+    print_header("CHECK SUMMARY")
+    print(f"✅ Passed: {passed}/{len(checks)} checks")
+    print(f"✅ Required: {required_passed}/{required_total} critical checks")
+    
+    if required_passed == required_total:
+        print("\n🎉 System is ready for installation!")
+        return 0
+    
+    print("\n❌ System has critical issues - fix required checks")
+    return 1
 
 if __name__ == "__main__":
-    main()
+    try:
+        # Change to project directory first
+        os.chdir(Path(__file__).parent.parent)
+        exit_code = main()
+        input("\nPress Enter to continue...")
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Check cancelled")
+        input("\nPress Enter to continue...")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ Fatal error: {e}")
+        input("\nPress Enter to continue...")
+        sys.exit(1)

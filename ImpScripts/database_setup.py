@@ -1,402 +1,196 @@
 #!/usr/bin/env python3
-"""
-[DATABASE] Database Setup & Migration Manager
-Handles SQLite database creation, migrations, and initial data setup
-"""
+# -*- coding: utf-8 -*-
+"""Database Setup & Migration Manager"""
 
 import os
 import sys
 import subprocess
-import sqlite3
+import platform
 import shutil
 from pathlib import Path
 from datetime import datetime
 
-class Colors:
-    GREEN = ''
-    RED = ''
-    YELLOW = ''
-    BLUE = ''
-    CYAN = ''
-    BOLD = ''
-    END = ''
+def print_header(title):
+    print("\n" + "=" * 70)
+    print(f"  {title}")
+    print("=" * 70)
 
-class DatabaseSetup:
-    def __init__(self):
-        self.project_root = Path.cwd()
-        self.venv_path = self.project_root / "venv"
-        self.db_path = self.project_root / "db.sqlite3"
-        self.backup_dir = self.project_root / "backups"
-        self.python_exe = self.get_python_executable()
-        
-    def get_python_executable(self):
-        """Get the correct Python executable (venv or system)"""
-        if os.name == 'nt':  # Windows
-            venv_python = self.venv_path / "Scripts" / "python.exe"
-        else:  # Unix-like
-            venv_python = self.venv_path / "bin" / "python"
-        
-        if venv_python.exists():
-            return str(venv_python)
-        else:
-            return sys.executable
+def get_venv_python():
+    """Get virtual environment Python path"""
+    if platform.system() == "Windows":
+        return Path("venv") / "Scripts" / "python.exe"
+    return Path("venv") / "bin" / "python"
+
+def run_command(cmd, timeout=60):
+    """Run command safely"""
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding='utf-8',
+            errors='replace'
+        )
+        return result
+    except subprocess.TimeoutExpired:
+        return None
+    except Exception as e:
+        print(f"   ⚠️  Command failed: {e}")
+        return None
+
+def backup_database():
+    """Backup existing database"""
+    print("\n💾 Checking for existing database...")
     
-    def print_header(self):
-        print(f"{Colors.CYAN}================================================================")
-        print(f"                                                                ")
-        print(f"   [DATABASE]  DATABASE SETUP & MIGRATION MANAGER                      ")
-        print(f"   [HEALTH] SQLite Database Configuration                            ")
-        print(f"                                                                ")
-        print(f"================================================================{Colors.END}")
-    
-    def check_django_availability(self):
-        """Check if Django is available"""
-        print(f"\n{Colors.BOLD}[CHECK] Checking Django availability...{Colors.END}")
+    db_file = Path("db.sqlite3")
+    if db_file.exists():
+        backup_name = f"db_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sqlite3"
+        backup_path = Path("backups") / backup_name
+        backup_path.parent.mkdir(exist_ok=True)
         
         try:
-            cmd = [self.python_exe, "-c", "import django; print(django.get_version())"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            
-            if result.returncode == 0:
-                version = result.stdout.strip()
-                print(f"   {Colors.GREEN}[OK] Django {version} available{Colors.END}")
-                return True
-            else:
-                print(f"   {Colors.RED}[ERROR] Django not available{Colors.END}")
-                return False
-                
+            shutil.copy2(db_file, backup_path)
+            print(f"   ✅ Database backed up to: {backup_path}")
+            return True
         except Exception as e:
-            print(f"   {Colors.RED}[ERROR] Django check failed: {e}{Colors.END}")
+            print(f"   ⚠️  Backup failed: {e}")
             return False
     
-    def backup_existing_database(self):
-        """Backup existing database if it exists"""
-        if not self.db_path.exists():
-            print(f"\n{Colors.BLUE}ℹ[EMOJI]  No existing database found{Colors.END}")
-            return True
-        
-        print(f"\n{Colors.BOLD}[MEMORY] Backing up existing database...{Colors.END}")
-        
-        try:
-            # Create backup directory
-            self.backup_dir.mkdir(exist_ok=True)
-            
-            # Create backup filename with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_name = f"db_backup_{timestamp}.sqlite3"
-            backup_path = self.backup_dir / backup_name
-            
-            # Copy database
-            shutil.copy2(self.db_path, backup_path)
-            
-            print(f"   {Colors.GREEN}[OK] Database backed up to: {backup_name}{Colors.END}")
-            return True
-            
-        except Exception as e:
-            print(f"   {Colors.RED}[ERROR] Backup failed: {e}{Colors.END}")
-            return False
+    print("   ℹ️  No existing database found")
+    return True
+
+def run_makemigrations():
+    """Create migrations"""
+    print("\n🔨 Creating migrations...")
     
-    def remove_existing_database(self):
-        """Remove existing database"""
-        if self.db_path.exists():
-            print(f"\n{Colors.BOLD}[EMOJI]  Removing existing database...{Colors.END}")
-            
-            try:
-                os.remove(self.db_path)
-                print(f"   {Colors.GREEN}[OK] Existing database removed{Colors.END}")
-            except Exception as e:
-                print(f"   {Colors.RED}[ERROR] Could not remove database: {e}{Colors.END}")
-                return False
-        
+    venv_python = get_venv_python()
+    if not venv_python.exists():
+        print("   ❌ Virtual environment not found!")
+        return False
+    
+    result = run_command([str(venv_python), "manage.py", "makemigrations"])
+    if result and result.returncode == 0:
+        print("   ✅ Migrations created")
+        if result.stdout:
+            print(f"   {result.stdout.strip()}")
         return True
     
-    def clean_migration_files(self):
-        """Remove existing migration files (except __init__.py)"""
-        print(f"\n{Colors.BOLD}[CLEAN] Cleaning migration files...{Colors.END}")
-        
-        migration_dirs = []
-        
-        # Find all migration directories
-        for item in self.project_root.iterdir():
-            if item.is_dir() and not item.name.startswith('.'):
-                migrations_dir = item / "migrations"
-                if migrations_dir.exists():
-                    migration_dirs.append(migrations_dir)
-        
-        cleaned_count = 0
-        
-        for migrations_dir in migration_dirs:
-            try:
-                for migration_file in migrations_dir.iterdir():
-                    if (migration_file.is_file() and 
-                        migration_file.name.endswith('.py') and 
-                        migration_file.name != '__init__.py'):
-                        
-                        migration_file.unlink()
-                        cleaned_count += 1
-                
-                # Also remove __pycache__
-                pycache_dir = migrations_dir / "__pycache__"
-                if pycache_dir.exists():
-                    shutil.rmtree(pycache_dir)
-                    
-            except Exception as e:
-                print(f"   {Colors.YELLOW}[WARN]  Could not clean {migrations_dir}: {e}{Colors.END}")
-        
-        print(f"   {Colors.GREEN}[OK] Cleaned {cleaned_count} migration files{Colors.END}")
+    print("   ⚠️  makemigrations had issues")
+    if result and result.stderr:
+        print(f"   Error: {result.stderr[:300]}")
+    return False
+
+def run_migrate():
+    """Apply migrations"""
+    print("\n🚀 Applying migrations...")
+    
+    venv_python = get_venv_python()
+    if not venv_python.exists():
+        print("   ❌ Virtual environment not found!")
+        return False
+    
+    result = run_command([str(venv_python), "manage.py", "migrate"])
+    if result and result.returncode == 0:
+        print("   ✅ Migrations applied")
         return True
     
-    def create_initial_migrations(self):
-        """Create initial migration files"""
-        print(f"\n{Colors.BOLD}[EMOJI] Creating initial migrations...{Colors.END}")
-        
-        try:
-            cmd = [self.python_exe, "manage.py", "makemigrations"]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-            
-            if result.returncode == 0:
-                print(f"   {Colors.GREEN}[OK] Initial migrations created{Colors.END}")
-                
-                # Show what was created
-                if result.stdout:
-                    lines = result.stdout.strip().split('\n')
-                    for line in lines:
-                        if 'Create model' in line or 'migrations for' in line:
-                            print(f"   [EMOJI] {line}")
-                
-                return True
-            else:
-                print(f"   {Colors.RED}[ERROR] Migration creation failed{Colors.END}")
-                print(f"   Error: {result.stderr}")
-                return False
-                
-        except Exception as e:
-            print(f"   {Colors.RED}[ERROR] Migration creation error: {e}{Colors.END}")
-            return False
+    print("   ❌ migrate failed")
+    if result and result.stderr:
+        print(f"   Error: {result.stderr[:300]}")
+    return False
+
+def collect_static():
+    """Collect static files"""
+    print("\n📦 Collecting static files...")
     
-    def apply_migrations(self):
-        """Apply migrations to create database schema"""
-        print(f"\n{Colors.BOLD}[TOOL] Applying migrations...{Colors.END}")
-        
-        try:
-            cmd = [self.python_exe, "manage.py", "migrate"]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            
-            if result.returncode == 0:
-                print(f"   {Colors.GREEN}[OK] Migrations applied successfully{Colors.END}")
-                
-                # Show applied migrations
-                if result.stdout:
-                    lines = result.stdout.strip().split('\n')
-                    applied_count = 0
-                    for line in lines:
-                        if 'Applying' in line:
-                            applied_count += 1
-                    
-                    if applied_count > 0:
-                        print(f"   [HEALTH] {applied_count} migrations applied")
-                
-                return True
-            else:
-                print(f"   {Colors.RED}[ERROR] Migration application failed{Colors.END}")
-                print(f"   Error: {result.stderr}")
-                return False
-                
-        except Exception as e:
-            print(f"   {Colors.RED}[ERROR] Migration application error: {e}{Colors.END}")
-            return False
+    venv_python = get_venv_python()
+    if not venv_python.exists():
+        print("   ⚠️  Virtual environment not found (skipping)")
+        return True  # Optional task
     
-    def verify_database_structure(self):
-        """Verify database was created correctly"""
-        print(f"\n{Colors.BOLD}[OK] Verifying database structure...{Colors.END}")
-        
-        if not self.db_path.exists():
-            print(f"   {Colors.RED}[ERROR] Database file not created{Colors.END}")
-            return False
-        
-        try:
-            # Connect to database and check tables
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Get list of tables
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = cursor.fetchall()
-            
-            table_names = [table[0] for table in tables]
-            
-            # Check for essential Django tables
-            essential_tables = [
-                'django_migrations',
-                'auth_user',
-                'django_content_type'
-            ]
-            
-            missing_tables = []
-            for table in essential_tables:
-                if table not in table_names:
-                    missing_tables.append(table)
-            
-            if missing_tables:
-                print(f"   {Colors.RED}[ERROR] Missing essential tables: {missing_tables}{Colors.END}")
-                return False
-            
-            print(f"   {Colors.GREEN}[OK] Database structure valid{Colors.END}")
-            print(f"   [HEALTH] {len(table_names)} tables created")
-            
-            # Show some key tables
-            key_tables = ['auth_user', 'students_student', 'fees_fee', 'teachers_teacher']
-            found_tables = [t for t in key_tables if t in table_names]
-            
-            if found_tables:
-                print(f"   [LIST] Key tables: {', '.join(found_tables)}")
-            
-            conn.close()
-            return True
-            
-        except Exception as e:
-            print(f"   {Colors.RED}[ERROR] Database verification failed: {e}{Colors.END}")
-            return False
-    
-    def create_superuser_prompt(self):
-        """Prompt to create superuser account"""
-        print(f"\n{Colors.BOLD}[EMOJI] Superuser Account Setup{Colors.END}")
-        
-        try:
-            response = input(f"   {Colors.YELLOW}Create superuser account now? (y/n): {Colors.END}")
-            
-            if response.lower() in ['y', 'yes']:
-                print(f"   {Colors.CYAN}Creating superuser account...{Colors.END}")
-                
-                cmd = [self.python_exe, "manage.py", "createsuperuser"]
-                
-                # Run interactively
-                result = subprocess.run(cmd, timeout=300)
-                
-                if result.returncode == 0:
-                    print(f"   {Colors.GREEN}[OK] Superuser created successfully{Colors.END}")
-                else:
-                    print(f"   {Colors.YELLOW}[WARN]  Superuser creation cancelled or failed{Colors.END}")
-            else:
-                print(f"   {Colors.BLUE}ℹ[EMOJI]  Superuser creation skipped{Colors.END}")
-                print(f"   {Colors.CYAN}[TIP] Run 'python manage.py createsuperuser' later{Colors.END}")
-            
-            return True
-            
-        except Exception as e:
-            print(f"   {Colors.YELLOW}[WARN]  Superuser setup error: {e}{Colors.END}")
-            return True  # Not critical
-    
-    def load_initial_data(self):
-        """Load initial data if fixtures exist"""
-        print(f"\n{Colors.BOLD}[HEALTH] Loading initial data...{Colors.END}")
-        
-        # Look for fixture files
-        fixture_dirs = [
-            self.project_root / "fixtures",
-            self.project_root / "initial_data"
-        ]
-        
-        fixture_files = []
-        for fixture_dir in fixture_dirs:
-            if fixture_dir.exists():
-                for fixture_file in fixture_dir.glob("*.json"):
-                    fixture_files.append(fixture_file)
-        
-        if not fixture_files:
-            print(f"   {Colors.BLUE}ℹ[EMOJI]  No fixture files found{Colors.END}")
-            return True
-        
-        loaded_count = 0
-        for fixture_file in fixture_files:
-            try:
-                print(f"   [EMOJI] Loading {fixture_file.name}...")
-                
-                cmd = [self.python_exe, "manage.py", "loaddata", str(fixture_file)]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-                
-                if result.returncode == 0:
-                    print(f"   {Colors.GREEN}[OK] {fixture_file.name} loaded{Colors.END}")
-                    loaded_count += 1
-                else:
-                    print(f"   {Colors.YELLOW}[WARN]  {fixture_file.name} failed to load{Colors.END}")
-                    
-            except Exception as e:
-                print(f"   {Colors.YELLOW}[WARN]  Error loading {fixture_file.name}: {e}{Colors.END}")
-        
-        if loaded_count > 0:
-            print(f"   {Colors.GREEN}[OK] {loaded_count} fixture files loaded{Colors.END}")
-        
+    result = run_command([str(venv_python), "manage.py", "collectstatic", "--noinput"])
+    if result and result.returncode == 0:
+        print("   ✅ Static files collected")
         return True
     
-    def run_database_setup(self):
-        """Run complete database setup process"""
-        self.print_header()
-        
-        # Check Django availability
-        if not self.check_django_availability():
-            return False
-        
-        # Backup existing database
-        if not self.backup_existing_database():
-            return False
-        
-        # Remove existing database
-        if not self.remove_existing_database():
-            return False
-        
-        # Clean migration files
-        if not self.clean_migration_files():
-            return False
-        
-        # Create initial migrations
-        if not self.create_initial_migrations():
-            return False
-        
-        # Apply migrations
-        if not self.apply_migrations():
-            return False
-        
-        # Verify database structure
-        if not self.verify_database_structure():
-            return False
-        
-        # Load initial data
-        self.load_initial_data()
-        
-        # Create superuser
-        self.create_superuser_prompt()
-        
-        print(f"\n{Colors.GREEN}[SUCCESS] Database setup completed successfully!{Colors.END}")
-        print(f"\n{Colors.BOLD}[LIST] Database Information:{Colors.END}")
-        print(f"   [LOCATION] Location: {self.db_path}")
-        print(f"   [MEMORY] Backup Directory: {self.backup_dir}")
-        print(f"   [TOOL] Type: SQLite3")
-        
+    print("   ⚠️  Static collection failed (optional)")
+    if result and result.stderr:
+        print(f"   Warning: {result.stderr[:200]}")
+    return True  # Optional task, don't fail setup
+
+def verify_database():
+    """Verify database"""
+    print("\n🔍 Verifying database...")
+    
+    venv_python = get_venv_python()
+    if not venv_python.exists():
+        print("   ❌ Virtual environment not found!")
+        return False
+    
+    result = run_command([str(venv_python), "manage.py", "check", "--database", "default"])
+    if result and result.returncode == 0:
+        print("   ✅ Database verification passed")
         return True
+    
+    print("   ⚠️  Database verification failed")
+    if result and result.stderr:
+        print(f"   Error: {result.stderr[:300]}")
+    return False
 
 def main():
-    """Main execution function"""
-    setup = DatabaseSetup()
+    """Main database setup"""
+    print_header("DATABASE SETUP & MIGRATION")
+    print(f"Working Directory: {os.getcwd()}")
+    print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    try:
-        success = setup.run_database_setup()
+    tasks = [
+        ("Backup Database", backup_database, False),
+        ("Create Migrations", run_makemigrations, True),
+        ("Apply Migrations", run_migrate, True),
+        ("Collect Static", collect_static, False),
+        ("Verify Database", verify_database, False)
+    ]
+    
+    success = 0
+    critical_success = 0
+    critical_total = 0
+    
+    for task_name, task_func, is_critical in tasks:
+        result = task_func()
+        if result:
+            success += 1
+            if is_critical:
+                critical_success += 1
         
-        if success:
-            print(f"\n{Colors.GREEN}[OK] Database is ready for School Management System!{Colors.END}")
-            sys.exit(0)
-        else:
-            print(f"\n{Colors.RED}[ERROR] Database setup failed{Colors.END}")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}[WARN]  Database setup cancelled by user{Colors.END}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n{Colors.RED}[ERROR] Database setup error: {e}{Colors.END}")
-        sys.exit(1)
+        if is_critical:
+            critical_total += 1
+            if not result:
+                print(f"\n❌ Critical task '{task_name}' failed!")
+                break
+    
+    print_header("DATABASE SETUP SUMMARY")
+    print(f"✅ Completed: {success}/{len(tasks)} tasks")
+    print(f"✅ Critical: {critical_success}/{critical_total} required tasks")
+    
+    if critical_success == critical_total:
+        print("\n🎉 Database is ready!")
+        return 0
+    
+    print("\n❌ Database setup failed - critical tasks incomplete!")
+    return 1
 
 if __name__ == "__main__":
-    main()
+    try:
+        os.chdir(Path(__file__).parent.parent)
+        exit_code = main()
+        input("\nPress Enter to continue...")
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Setup cancelled")
+        input("\nPress Enter to continue...")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ Fatal error: {e}")
+        input("\nPress Enter to continue...")
+        sys.exit(1)

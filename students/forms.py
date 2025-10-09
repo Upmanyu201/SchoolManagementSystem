@@ -120,7 +120,7 @@ class StudentForm(forms.ModelForm):
             'admission_number', 'first_name', 'last_name', 'father_name',
             'mother_name', 'date_of_birth', 'date_of_admission', 'gender',
             'religion', 'caste_category', 'address', 'mobile_number', 'email',
-            'blood_group', 'status'
+            'blood_group'
         ]
         
         # Make file uploads optional for easier testing
@@ -133,12 +133,11 @@ class StudentForm(forms.ModelForm):
             if field_name in self.fields:
                 self.fields[field_name].required = True
         
-        # Status field defaults to ACTIVE for new students
+        # Hide status field for new students (will use model default 'ACTIVE')
         if not self.instance.pk:
+            self.fields['status'].widget = forms.HiddenInput()
             self.fields['status'].initial = 'ACTIVE'
-        
-        # Only allow admins to change status in form (optional - can be removed if using modal only)
-        # self.fields['status'].widget = forms.HiddenInput()
+            self.fields['status'].required = False
 
     def clean_admission_number(self):
         """Validate and sanitize admission number"""

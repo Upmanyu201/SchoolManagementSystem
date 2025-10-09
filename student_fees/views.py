@@ -388,14 +388,24 @@ def submit_deposit(request):
             for fee_id in selected_fees:
                 amount_key = f'amount_{fee_id}'
                 discount_key = f'discount_{fee_id}'
-                amount = Decimal(request.POST.get(amount_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
+                payable_key = f'payable_{fee_id}'
+                
+                original_amount = Decimal(request.POST.get(amount_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
                 discount = Decimal(request.POST.get(discount_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
+                payable_amount = Decimal(request.POST.get(payable_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
+                
+                logger.info(f"🔍 [BACKEND] Fee {fee_id}: original={original_amount}, discount={discount}, payable={payable_amount}")
+                
+                # ALWAYS use payable amount (user's edited value)
+                amount = payable_amount if payable_amount > 0 else (original_amount - discount)
+                
+                logger.info(f"✅ [BACKEND] Fee {fee_id}: final amount={amount}")
                 
                 if amount > 0:
                     payment_items.append({
                         'fee_id': fee_id,
                         'amount': amount,
-                        'discount': discount
+                        'discount': Decimal('0')
                     })
             
             if not payment_items:
@@ -421,7 +431,7 @@ def submit_deposit(request):
                 fee_id = item['fee_id']
                 amount = item['amount']
                 discount = item['discount']
-                paid_amount = amount - discount
+                paid_amount = amount
                 
                 if paid_amount <= 0:
                     continue
@@ -476,17 +486,17 @@ def submit_deposit(request):
             # Clear cache and trigger post-payment sync
             try:
                 from django.core.cache import cache
-                cache.delete_pattern(f"balance_{student.id}*")
+                # Clear all balance cache keys for this student
+                cache_keys = [f"balance_{student.id}_{hash(str(getattr(student, 'updated_at', i)))}" for i in range(100)]
+                for key in cache_keys:
+                    cache.delete(key)
+                cache.delete(f"balance_{student.id}")
                 cache.delete('dashboard_stats')
                 cache.set('dashboard_last_update', django_timezone.now().isoformat(), 3600)
                 
-                # Trigger post-payment sync if centralized service available
-                if FEE_SERVICE_AVAILABLE:
-                    fee_service.post_payment_sync(student)
-                
-                logger.info("Dashboard cache invalidated and post-payment sync completed")
+                logger.info("Balance cache cleared for student after payment")
             except Exception as cache_error:
-                logger.warning(f"Failed to invalidate cache or sync: {cache_error}")
+                logger.warning(f"Failed to invalidate cache: {cache_error}")
                 pass
             
             request.session['last_receipt_no'] = receipt_no

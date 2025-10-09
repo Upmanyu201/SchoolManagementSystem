@@ -564,6 +564,17 @@ class ConsolidatedFeeManager {
             });
         });
 
+        // ✅ FIX: Payable input change handler
+        const payableInputs = form.querySelectorAll('input[name^="payable_"]');
+        payableInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                clearTimeout(this.updateTimeout);
+                this.updateTimeout = setTimeout(() => {
+                    this.updateTotals(form);
+                }, 300);
+            });
+        });
+
         // Form submission
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -649,76 +660,42 @@ class ConsolidatedFeeManager {
 
     updateTotals(form) {
         console.log('🔍 [FEES JS] updateTotals called');
-        let selectedTotal = 0;
-        let totalDiscount = 0;
+        let totalSelected = 0;
+        let totalPayable = 0;
 
         form.querySelectorAll('.fee-row').forEach(row => {
             const checkbox = row.querySelector('.fee-checkbox');
-            const amountText = row.querySelector('.fee-amount').textContent;
-            const amount = parseFloat(amountText.replace('₹', '').replace(',', '').trim()) || 0;
             
             if (checkbox && checkbox.checked) {
-                const discountInput = row.querySelector('.discount-input');
-                let discount = 0;
+                const amountText = row.querySelector('.fee-amount')?.textContent;
+                const amount = parseFloat(amountText?.replace('₹', '').replace(',', '').trim() || 0);
                 
-                if (discountInput) {
-                    discount = parseFloat(discountInput.value) || 0;
-                    if (discount > amount) {
-                        discount = amount;
-                        discountInput.value = discount.toFixed(2);
-                    }
-                }
-
-                const payableAmount = amount - discount;
-                const payableCell = row.querySelector('.payable-amount');
-                if (payableCell) {
-                    payableCell.textContent = `₹ ${payableAmount.toFixed(2)}`;
-                }
-
-                selectedTotal += amount;
-                totalDiscount += discount;
+                const payableInput = row.querySelector(`input[name="payable_${checkbox.value}"]`);
+                const payable = payableInput ? parseFloat(payableInput.value || 0) : 0;
+                
+                totalSelected += amount;
+                totalPayable += payable;
                 row.classList.add('bg-green-50');
             } else {
-                const payableCell = row.querySelector('.payable-amount');
-                const amountCell = row.querySelector('.fee-amount');
-                if (payableCell && amountCell) {
-                    payableCell.textContent = amountCell.textContent;
-                }
                 row.classList.remove('bg-green-50');
             }
         });
-
-        const payable = selectedTotal - totalDiscount;
         
-        console.log('✅ [FEES JS] Totals calculated', {
-            selectedTotal,
-            totalDiscount,
-            payable
-        });
+        console.log('✅ [FEES JS] Totals calculated', { totalSelected, totalPayable });
         
-        // Update summary with proper values
         const totalSelectedEl = form.querySelector('#total_selected');
-        const totalDiscountEl = form.querySelector('#total_discount');
         const totalPayableEl = form.querySelector('#total_payable');
-
+        
         if (totalSelectedEl) {
-            totalSelectedEl.textContent = `₹ ${selectedTotal.toFixed(2)}`;
-            totalSelectedEl.style.color = selectedTotal > 0 ? '#059669' : '#6b7280';
-        }
-        if (totalDiscountEl) {
-            totalDiscountEl.textContent = `₹ ${totalDiscount.toFixed(2)}`;
-            totalDiscountEl.style.color = totalDiscount > 0 ? '#dc2626' : '#6b7280';
+            totalSelectedEl.textContent = `₹ ${totalSelected.toFixed(2)}`;
         }
         if (totalPayableEl) {
-            totalPayableEl.textContent = `₹ ${payable.toFixed(2)}`;
-            totalPayableEl.style.color = payable > 0 ? '#7c3aed' : '#6b7280';
-            totalPayableEl.style.fontWeight = payable > 0 ? 'bold' : 'normal';
+            totalPayableEl.textContent = `₹ ${totalPayable.toFixed(2)}`;
+            totalPayableEl.style.color = totalPayable > 0 ? '#7c3aed' : '#6b7280';
         }
         
-        // Store values for modal access
-        form.dataset.totalSelected = selectedTotal.toFixed(2);
-        form.dataset.totalDiscount = totalDiscount.toFixed(2);
-        form.dataset.totalPayable = payable.toFixed(2);
+        form.dataset.totalSelected = totalSelected.toFixed(2);
+        form.dataset.totalPayable = totalPayable.toFixed(2);
     }
 
     async handleFormSubmission(form) {
@@ -919,52 +896,43 @@ class ConsolidatedFeeManager {
         if (feesList) {
             feesList.innerHTML = '';
             let totalAmount = 0;
-            let totalDiscount = 0;
+            
+            let totalOriginal = 0;
+            let totalPayable = 0;
             
             selectedFees.forEach(checkbox => {
                 const row = checkbox.closest('tr');
                 const feeName = row.querySelector('td:nth-child(2) .font-medium').textContent.trim();
                 
-                // Get actual amount from the amount input or data attribute
-                const amountInput = row.querySelector(`input[name="amount_${checkbox.value}"]`);
-                const amount = amountInput ? parseFloat(amountInput.value) : parseFloat(checkbox.dataset.amount || 0);
+                // Read original amount
+                const amountText = row.querySelector('.fee-amount')?.textContent;
+                const amount = parseFloat(amountText?.replace('₹', '').replace(',', '').trim() || 0);
                 
-                // Get discount if applicable
-                const discountInput = row.querySelector(`input[name="discount_${checkbox.value}"]`);
-                const discount = discountInput ? parseFloat(discountInput.value || 0) : 0;
+                // Read payable amount
+                const payableInput = row.querySelector(`input[name="payable_${checkbox.value}"]`);
+                const payable = payableInput ? parseFloat(payableInput.value || 0) : 0;
                 
-                const payableAmount = amount - discount;
-                
-                totalAmount += amount;
-                totalDiscount += discount;
+                totalOriginal += amount;
+                totalPayable += payable;
                 
                 const feeItem = document.createElement('div');
                 feeItem.className = 'flex justify-between text-sm';
                 feeItem.innerHTML = `
                     <span>${feeName}</span>
-                    <div class="text-right">
-                        <div>₹ ${amount.toFixed(2)}</div>
-                        ${discount > 0 ? `<div class="text-xs text-green-600">-₹ ${discount.toFixed(2)}</div>` : ''}
-                    </div>
+                    <div class="text-right">₹ ${payable.toFixed(2)}</div>
                 `;
                 feesList.appendChild(feeItem);
             });
             
-            const finalAmount = totalAmount - totalDiscount;
-            
             // Update modal totals
             const modalTotal = modal.querySelector('#modalTotalAmount');
-            const modalDiscount = modal.querySelector('#modalTotalDiscount');
             const modalFinal = modal.querySelector('#modalFinalAmount');
             
-            if (modalTotal) modalTotal.textContent = `₹ ${totalAmount.toFixed(2)}`;
-            if (modalDiscount) modalDiscount.textContent = `₹ ${totalDiscount.toFixed(2)}`;
-            if (modalFinal) modalFinal.textContent = `₹ ${finalAmount.toFixed(2)}`;
+            if (modalTotal) modalTotal.textContent = `₹ ${totalOriginal.toFixed(2)}`;
+            if (modalFinal) modalFinal.textContent = `₹ ${totalPayable.toFixed(2)}`;
             
             console.log('✅ [FEES JS] Modal calculations updated:', {
                 totalAmount,
-                totalDiscount,
-                finalAmount,
                 selectedCount: selectedFees.length
             });
         }

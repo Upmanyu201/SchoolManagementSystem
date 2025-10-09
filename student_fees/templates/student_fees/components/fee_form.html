@@ -142,7 +142,19 @@ setTimeout(() => {
                             </td>
                             {% endif %}
                             <td class="px-4 py-3 text-right">
-                                <span class="payable-amount font-bold {% if fee.type == 'carry_forward' %}text-yellow-600{% else %}text-green-600{% endif %}" data-original="{{ fee.amount }}">₹ {{ fee.amount|floatformat:2 }}</span>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                                    <input type="number" 
+                                           class="payable-input w-28 pl-6 pr-2 py-2 border-2 border-green-300 rounded-lg text-right text-sm font-bold {% if fee.type == 'carry_forward' %}text-yellow-600{% else %}text-green-600{% endif %} focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50 hover:bg-white transition-colors" 
+                                           name="payable_{{ fee.id }}" 
+                                           min="0.01" 
+                                           max="{{ fee.amount }}" 
+                                           step="0.01" 
+                                           value="{{ fee.amount }}"
+                                           data-fee-id="{{ fee.id }}"
+                                           data-original="{{ fee.amount }}"
+                                           title="Enter partial payment amount (editable)">
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

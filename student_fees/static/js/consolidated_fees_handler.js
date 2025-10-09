@@ -232,7 +232,12 @@ class ConsolidatedFeeManager {
                     </td>
                 ` : ''}
                 <td class="px-4 py-3 text-right">
-                    <span class="payable-amount font-bold text-green-600">₹ ${fee.amount.toFixed(2)}</span>
+                    <div class="relative">
+                        <span class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                        <input type="number" class="payable-input w-28 pl-6 pr-2 py-2 border-2 border-green-300 rounded-lg text-right text-sm font-bold text-green-600 focus:ring-2 focus:ring-green-500 bg-green-50 hover:bg-white transition-colors" 
+                               name="payable_${fee.id}" min="0.01" max="${fee.amount}" step="0.01" value="${fee.amount}"
+                               data-fee-id="${fee.id}" data-original="${fee.amount}" title="Enter partial payment amount (editable)">
+                    </div>
                 </td>
             </tr>
         `;
@@ -308,11 +313,41 @@ class ConsolidatedFeeManager {
             input.addEventListener('input', () => this.updateTotals(form));
         });
 
-        // Form submission
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleFormSubmission(form);
+        form.querySelectorAll('.payable-input').forEach(input => {
+            console.log('🔍 [FEES JS] Payable input listener added:', input.name);
+            input.addEventListener('input', () => {
+                console.log('🔍 [FEES JS] Payable input changed:', input.value);
+                this.updateTotals(form);
+            });
         });
+        
+        console.log('🔍 [FEES JS] Found payable inputs:', form.querySelectorAll('.payable-input').length);
+
+        // Process Payment button handler
+        const confirmPaymentBtn = form.querySelector('#confirmPaymentBtn');
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.addEventListener('click', () => {
+                this.showPaymentModal(form);
+            });
+        }
+
+        // Modal handlers
+        const modal = document.getElementById('paymentModal');
+        const cancelBtn = document.getElementById('cancelPayment');
+        const confirmBtn = document.getElementById('confirmPayment');
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+        }
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                form.submit();
+            });
+        }
 
         // Initialize totals
         this.updateTotals(form);
@@ -343,55 +378,82 @@ class ConsolidatedFeeManager {
     }
 
     updateTotals(form) {
-        let selectedTotal = 0;
-        let totalDiscount = 0;
+        console.log('🔍 [FEES JS] updateTotals called');
+        let totalSelected = 0;
+        let totalPayable = 0;
 
         form.querySelectorAll('.fee-row').forEach(row => {
             const checkbox = row.querySelector('.fee-checkbox');
-            const amountText = row.querySelector('.fee-amount').textContent;
-            const amount = parseFloat(amountText.replace('₹', '').replace(',', '').trim()) || 0;
             
             if (checkbox && checkbox.checked) {
-                const discountInput = row.querySelector('.discount-input');
-                let discount = 0;
+                const amountText = row.querySelector('.fee-amount')?.textContent;
+                const amount = parseFloat(amountText?.replace('₹', '').replace(',', '').trim() || 0);
                 
-                if (discountInput) {
-                    discount = parseFloat(discountInput.value) || 0;
-                    if (discount > amount) {
-                        discount = amount;
-                        discountInput.value = discount.toFixed(2);
-                    }
-                }
-
-                const payableAmount = amount - discount;
-                const payableCell = row.querySelector('.payable-amount');
-                if (payableCell) {
-                    payableCell.textContent = `₹ ${payableAmount.toFixed(2)}`;
-                }
-
-                selectedTotal += amount;
-                totalDiscount += discount;
+                const payableInput = row.querySelector(`input[name="payable_${checkbox.value}"]`);
+                const payable = payableInput ? parseFloat(payableInput.value || 0) : 0;
+                
+                totalSelected += amount;
+                totalPayable += payable;
                 row.classList.add('bg-green-50');
             } else {
-                const payableCell = row.querySelector('.payable-amount');
-                const amountCell = row.querySelector('.fee-amount');
-                if (payableCell && amountCell) {
-                    payableCell.textContent = amountCell.textContent;
-                }
                 row.classList.remove('bg-green-50');
             }
         });
-
-        const payable = selectedTotal - totalDiscount;
         
-        // Update summary
+        console.log('✅ [FEES JS] Totals calculated', { totalSelected, totalPayable });
+        
         const totalSelectedEl = form.querySelector('#total_selected');
-        const totalDiscountEl = form.querySelector('#total_discount');
         const totalPayableEl = form.querySelector('#total_payable');
+        
+        if (totalSelectedEl) {
+            totalSelectedEl.textContent = `₹ ${totalSelected.toFixed(2)}`;
+        }
+        if (totalPayableEl) {
+            totalPayableEl.textContent = `₹ ${totalPayable.toFixed(2)}`;
+            totalPayableEl.style.color = totalPayable > 0 ? '#7c3aed' : '#6b7280';
+        }
+        
+        form.dataset.totalPayable = totalPayable.toFixed(2);
+    }
 
-        if (totalSelectedEl) totalSelectedEl.textContent = `₹ ${selectedTotal.toFixed(2)}`;
-        if (totalDiscountEl) totalDiscountEl.textContent = `₹ ${totalDiscount.toFixed(2)}`;
-        if (totalPayableEl) totalPayableEl.textContent = `₹ ${payable.toFixed(2)}`;
+    showPaymentModal(form) {
+        const selectedFees = form.querySelectorAll('.fee-checkbox:checked');
+        if (selectedFees.length === 0) {
+            this.showMessage('Please select at least one fee to pay.', 'error');
+            return;
+        }
+
+        const modal = document.getElementById('paymentModal');
+        const modalFeesList = document.getElementById('modalFeesList');
+        const modalFinalAmount = document.getElementById('modalFinalAmount');
+        const modalPaymentMethod = document.getElementById('modalPaymentMethod');
+
+        let totalPayable = 0;
+        let feesHtml = '';
+
+        selectedFees.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            const feeName = row.querySelector('.font-medium').textContent.trim();
+            
+            // ✅ FIX: Read from payable input (user's edited value)
+            const payableInput = row.querySelector(`input[name="payable_${checkbox.value}"]`);
+            const payableAmount = payableInput ? parseFloat(payableInput.value || 0) : 0;
+            
+            totalPayable += payableAmount;
+            
+            feesHtml += `
+                <div class="flex justify-between text-sm">
+                    <span>${feeName}</span>
+                    <span>₹ ${payableAmount.toFixed(2)}</span>
+                </div>
+            `;
+        });
+
+        modalFeesList.innerHTML = feesHtml;
+        modalFinalAmount.textContent = `₹ ${totalPayable.toFixed(2)}`;
+        modalPaymentMethod.textContent = form.querySelector('#payment_mode').value;
+
+        modal.classList.remove('hidden');
     }
 
     async handleFormSubmission(form) {

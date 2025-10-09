@@ -58,6 +58,10 @@ class StudentService:
         """
         try:
             with transaction.atomic():
+                # Ensure status is ACTIVE by default
+                if 'status' not in validated_data or not validated_data['status']:
+                    validated_data['status'] = 'ACTIVE'
+                
                 # Create student
                 student = Student.objects.create(**validated_data)
                 
@@ -70,7 +74,7 @@ class StudentService:
                 
                 # Clear relevant caches
                 StudentService._clear_student_caches(user.id)
-                
+                cache.clear()  # Clear all caches to ensure new student appears
                 return student
                 
         except Exception as e:

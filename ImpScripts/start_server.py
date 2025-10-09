@@ -279,11 +279,25 @@ class SchoolServerManager:
     def open_browser(self):
         """Open default browser after server starts"""
         def delayed_browser_open():
-            time.sleep(3)
+            # Wait for server to be fully ready
+            max_wait = 30
+            for i in range(max_wait):
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(1)
+                        if s.connect_ex((self.selected_ip, self.port)) == 0:
+                            time.sleep(1)  # Extra second for Django initialization
+                            main_url = self.server_urls[0]
+                            print(f"\n{Colors.GREEN}[NETWORK] Opening browser: {main_url}{Colors.END}")
+                            webbrowser.open(main_url)
+                            return
+                except:
+                    pass
+                time.sleep(1)
+            
+            print(f"{Colors.YELLOW}[WARN]  Server took too long to start, opening browser anyway{Colors.END}")
             try:
-                main_url = self.server_urls[0]
-                print(f"\n{Colors.GREEN}[NETWORK] Opening browser: {main_url}{Colors.END}")
-                webbrowser.open(main_url)
+                webbrowser.open(self.server_urls[0])
             except Exception as e:
                 print(f"{Colors.YELLOW}[WARN]  Could not auto-open browser: {e}{Colors.END}")
         
@@ -375,8 +389,8 @@ class SchoolServerManager:
             if not self.start_django_server():
                 return
             
-            self.start_log_monitor()
             self.open_browser()
+            self.start_log_monitor()
             
             try:
                 while True:

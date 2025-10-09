@@ -330,6 +330,10 @@ class StudentForm(forms.ModelForm):
         """Cross-field validation"""
         cleaned_data = super().clean()
         
+        # Ensure new students always get ACTIVE status
+        if not self.instance.pk and not cleaned_data.get('status'):
+            cleaned_data['status'] = 'ACTIVE'
+        
         date_of_birth = cleaned_data.get('date_of_birth')
         date_of_admission = cleaned_data.get('date_of_admission')
         

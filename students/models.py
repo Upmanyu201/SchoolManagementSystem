@@ -69,7 +69,7 @@ class StudentManager(models.Manager):
             'class_section__class_name', 'class_section__section_name'
         )
         
-        if status_filter:
+        if status_filter and status_filter != '':
             queryset = queryset.filter(status=status_filter)
         
         return queryset.order_by('first_name', 'last_name')
@@ -84,13 +84,14 @@ class StudentManager(models.Manager):
             Q(mobile_number__icontains=query)
         )
         
-        if status_filter:
+        if status_filter and status_filter != '':
             queryset = queryset.filter(status=status_filter)
+
         
         return queryset.only(
             'id', 'admission_number', 'first_name', 'last_name',
             'mobile_number', 'status', 'class_section__class_name'
-        )[:20]  # Limit results
+        )[:100]  # Limit results
     
     def get_status_counts(self):
         """Get count of students by status with caching"""

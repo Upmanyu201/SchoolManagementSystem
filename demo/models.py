@@ -21,7 +21,7 @@ class DemoStatus(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.demo_expires:
-            self.demo_expires = timezone.now() + timedelta(days=7)
+            self.demo_expires = timezone.now() + timedelta(days=15)
         super().save(*args, **kwargs)
     
     @property
@@ -42,7 +42,7 @@ class DemoStatus(models.Model):
         machine_id = LicenseService.get_machine_id()
         status, created = cls.objects.get_or_create(
             machine_id=machine_id,
-            defaults={'demo_expires': timezone.now() + timedelta(days=7)}
+            defaults={'demo_expires': timezone.now() + timedelta(days=15)}
         )
         return status
 

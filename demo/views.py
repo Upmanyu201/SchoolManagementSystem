@@ -72,7 +72,7 @@ def demo_expired(request):
     return render(request, 'demo/expired.html', context)
 
 def reset_demo(request):
-    """Reset demo period for testing (7 days from now)"""
+    """Reset demo period for testing (15 days from now)"""
     from django.utils import timezone
     from datetime import timedelta
     from django.http import JsonResponse
@@ -83,8 +83,8 @@ def reset_demo(request):
         try:
             demo_status = LicenseService.get_demo_status()
             
-            # Reset demo period to 7 days from now
-            demo_status.demo_expires = timezone.now() + timedelta(days=7)
+            # Reset demo period to 15 days from now
+            demo_status.demo_expires = timezone.now() + timedelta(days=15)
             demo_status.is_licensed = False
             demo_status.license_key = None
             demo_status.activated_by = None
@@ -93,7 +93,7 @@ def reset_demo(request):
             
             return JsonResponse({
                 'success': True,
-                'message': 'Demo period reset successfully! You now have 7 days.',
+                'message': 'Demo period reset successfully! You now have 15 days.',
                 'new_expiry': demo_status.demo_expires.isoformat(),
                 'days_remaining': demo_status.days_remaining
             })

@@ -58,7 +58,7 @@
                             <div class="mt-4">
                                 <div class="flex justify-between text-sm text-white/80 mb-2">
                                     <span>Trial Progress</span>
-                                    <span>{{ days_remaining }}/7 days</span>
+                                    <span>{{ days_remaining }}/15 days</span>
                                 </div>
                                 <div class="w-full bg-white/20 rounded-full h-2">
                                     <div class="{% if days_remaining > 3 %}bg-white{% elif days_remaining > 1 %}bg-yellow-300{% else %}bg-red-300{% endif %} h-2 rounded-full transition-all duration-500" 
@@ -69,11 +69,11 @@
                         </div>
                         
                         <div class="text-right ml-6">
-                            <div class="text-4xl font-bold mb-1">
+                            <div class="text-4xl font-bold mb-1" id="countdown-display">
                                 {% if is_licensed %}∞{% else %}{{ days_remaining }}{% endif %}
                             </div>
                             <div class="text-sm text-white/80">
-                                {% if is_licensed %}Unlimited{% else %}Days Left{% endif %}
+                                {% if is_licensed %}Unlimited{% else %}<span id="countdown-label">Days Left</span>{% endif %}
                             </div>
                         </div>
                     </div>
@@ -420,6 +420,36 @@
 </style>
 
 <script>
+// Countdown timer for demo expiration
+{% if not is_licensed and is_active %}
+const demoEndTime = new Date('{{ demo_status.demo_expires|date:"c" }}').getTime();
+
+function updateCountdown() {
+    const now = new Date().getTime();
+    const distance = demoEndTime - now;
+    
+    if (distance < 0) {
+        document.getElementById('countdown-display').textContent = '00:00:00:00';
+        document.getElementById('countdown-label').textContent = 'Expired';
+        return;
+    }
+    
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    
+    const formatted = `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    
+    document.getElementById('countdown-display').textContent = formatted;
+    document.getElementById('countdown-label').textContent = 'dd:hh:mm:ss';
+}
+
+// Update countdown every second
+setInterval(updateCountdown, 1000);
+updateCountdown();
+{% endif %}
+
 // Initialize Lucide icons when available
 function initializeLucideIcons() {
     if (typeof lucide !== 'undefined') {

@@ -16,16 +16,18 @@
                 padding: 0;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                overflow: hidden;
             }
             .print-page {
                 width: 49.5%;
                 height: 135mm;
                 float: left;
                 box-sizing: border-box;
-                padding: 5mm;
+                padding: 3mm;
                 position: relative;
                 page-break-inside: avoid;
                 margin-right: 1%;
+                overflow: hidden;
             }
             .print-page:nth-child(even) {
                 margin-right: 0;
@@ -37,7 +39,11 @@
                 display: none;
             }
             .fee-tbody {
-                max-height: 50mm;
+                max-height: 40mm;
+                overflow: hidden;
+            }
+            * {
+                overflow: visible !important;
             }
         }
 
@@ -58,46 +64,7 @@
             overflow: hidden;
         }
 
-        .school-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1.5mm;
-            padding-bottom: 1.5mm;
-            border-bottom: 0.5px solid #eee;
-        }
 
-        .school-logo-container {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1.5px solid #ddd;
-            padding: 1.5px;
-        }
-
-        .school-logo {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .school-info {
-            flex: 1;
-            text-align: center;
-            padding: 0 3mm;
-        }
-
-        .school-name {
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 1mm;
-        }
-
-        .contact-info {
-            font-size: 10px;
-            line-height: 1.2;
-        }
 
         .receipt-title {
             text-align: center;
@@ -125,7 +92,7 @@
             border-collapse: collapse;
             margin: 2mm 0;
             font-size: 10px;
-            flex: 1;
+            table-layout: fixed;
         }
         
         .fee-table-container {
@@ -137,7 +104,7 @@
         
         .fee-tbody {
             display: block;
-            max-height: 45mm;
+            max-height: 60mm;
             overflow-y: auto;
             overflow-x: hidden;
         }
@@ -149,10 +116,13 @@
         }
 
         th, td {
-            padding: 2mm;
-            border: 1px solid #ddd;
+            padding: 1mm;
+            border: 0.5px solid #666;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            font-size: 8px;
+            line-height: 1.2;
+            text-align: center;
         }
         
         .fee-name {
@@ -168,7 +138,7 @@
         }
 
         .amount-cell {
-            text-align: right;
+            text-align: "center";
             font-family: 'Courier New', monospace;
         }
 
@@ -232,34 +202,32 @@
         <div class="receipt-container">
             <div class="copy-label">{{ copy }} Copy</div>
             
-            <div class="school-header">
-                {% if school and school.logo %}
-                <div class="school-logo-container">
-                    <img src="{{ school.logo.url }}" alt="School Logo" class="school-logo">
+            <!-- School Header with Logo and Border -->
+            <div style="display: flex; align-items: center; border-bottom: 2px solid #000; padding-bottom: 2mm; margin-bottom: 2mm;">
+                {% if school.logo %}
+                <div style="width: 50px; height: 50px; margin-right: 8px; flex-shrink: 0; border-radius: 50%; border: 2px solid #333; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <img src="{{ school.logo.url }}" alt="School Logo" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 {% endif %}
-
-                <div class="school-info">
-                    {% if school %}
-                    <div class="school-name">{{ school.school_name|default:"Our School" }}</div>
-                    <div class="contact-info">
-                        {{ school.address|default:"" }}
-                        {% if school.mobile_number %} Ph:{{ school.mobile_number }}{% endif %}
-                        {% if school.email %} |{{ school.email }}{% endif %}
-                    </div>
-                    {% endif %}
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 1mm;">{{ school.school_name|default:"School Name" }}</div>
+                    <div style="font-size: 10px; margin-bottom: 1mm;">{{ school.address|default:"Full Address of School" }}</div>
+                    <div style="font-size: 10px;">{{ school.principal_name|default:"Principal Name" }} &nbsp;&nbsp; {{ school.mobile|default:"Mobile Number" }}</div>
                 </div>
             </div>
 
-            <div class="receipt-title">FEE RECEIPT</div>
-
-            <div class="info-grid">
-                <div><strong>Student:</strong> {{ student.get_full_display_name }}</div>
-                <div><strong>R.No:</strong> {{ receipt_no }}</div>
+            <!-- Student Info Section -->
+            <div style="border-bottom: 1px solid #000; padding-bottom: 1mm; margin-bottom: 2mm; font-size: 10px;">
+                <div style="margin-bottom: 0.5mm;"><strong>Name:</strong> {{ student.get_full_display_name }} {{ student.admission_number }}</div>
+                <div style="margin-bottom: 0.5mm;"><strong>Class:</strong> {{ class_name }}</div>
+                <div><strong>Father Name:</strong> {{ student.father_name|default:"-" }} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Mobile no:</strong> {{ student.mobile_number|default:"-" }}</div>
             </div>
-            <div class="info-grid">
-                <div><strong>Class:</strong> {{ class_name }}</div>
-                <div><strong>Date:</strong> {{ deposit_date|date:"d/m/y H:i" }}</div>
+
+            <!-- Receipt Details Section -->
+            <div style="border-bottom: 1px solid #000; padding-bottom: 1mm; margin-bottom: 2mm; font-size: 10px;">
+                <div style="margin-bottom: 0.5mm;"><strong>Date:</strong> {% now "d/m/Y" %} &nbsp;&nbsp; <strong>Receipt No:</strong> {{ receipt_no }}</div>
+                <div style="margin-bottom: 0.5mm;"><strong>Mode of Payment:</strong> {{ payments.first.payment_mode|default:"Cash" }} {% if payments.first.bank_name %}{{ payments.first.bank_name }}{% endif %} {{ payments.first.transaction_no|default:"-" }}</div>
+                <div><strong>Curr Due:</strong> {{ current_session_due|floatformat:0|default:"0" }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Prev Due:</strong> {{ previous_session_due|floatformat:0|default:"0" }}</div>
             </div>
 
             <div class="fee-table-container">
@@ -267,105 +235,120 @@
                     <thead>
                         <tr>
                             {% if show_discount %}
-                            <th style="width: 40%">Fee Type</th>
-                            <th class="amount-cell" style="width: 20%">Amt</th>
-                            <th class="amount-cell" style="width: 20%">Disc</th>
-                            <th class="amount-cell" style="width: 20%">Paid</th>
+                            <th style="width: 30%;">Particulars</th>
+                            <th style="width: 14%;">Amount</th>
+                            <th style="width: 14%;">Discount</th>
+                            <th style="width: 14%;">Paid</th>
+                            <th style="width: 14%;">Prev Paid</th>
+                            <th style="width: 14%;">Due</th>
                             {% else %}
-                            <th style="width: 50%">Fee Type</th>
-                            <th class="amount-cell" style="width: 25%">Amt</th>
-                            <th class="amount-cell" style="width: 25%">Paid</th>
+                            <th style="width: 40%;">Particulars</th>
+                            <th style="width: 15%;">Amount</th>
+                            <th style="width: 15%;">Paid</th>
+                            <th style="width: 15%;">Prev Paid</th>
+                            <th style="width: 15%;">Due</th>
                             {% endif %}
                         </tr>
                     </thead>
-                </table>
                 
-                <table style="margin-top: 0;">
-                    <tbody class="fee-tbody">
+                    <tbody>
                         {% for payment in regular_payments %}
                         <tr>
                             {% if show_discount %}
-                            <td style="width: 40%">
+                            <td style="text-align: left;">
                                  {% if payment.note and "Fee Payment:" in payment.note %}
-                                    {{ payment.note|slice:"13:"|slice:":19" }}
+                                    {{ payment.note|slice:"13:"|truncatechars:20 }}
                                 {% else %}
-                                    {{ payment.note|default:"Fee"|slice:":19" }}
+                                    {{ payment.note|default:"Fee"|truncatechars:20 }}
                                 {% endif %}
                             </td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.amount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.discount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.amount|floatformat:0 }}</td>
+                            <td>{{ payment.discount|floatformat:0 }}</td>
+                            <td>{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.previous_total_paid|floatformat:0|default:"0" }}</td>
+                            <td>{{ payment.due_amount|floatformat:0|default:"0" }}</td>
                             {% else %}
-                            <td style="width: 50%">
+                            <td style="text-align: left;">
                                 {% if payment.note and "Fee Payment:" in payment.note %}
-                                    {{ payment.note|slice:"13:" }}
+                                    {{ payment.note|slice:"13:"|truncatechars:25 }}
                                 {% else %}
-                                    {{ payment.note|default:"Fee" }}
+                                    {{ payment.note|default:"Fee"|truncatechars:25 }}
                                 {% endif %}
                             </td>
-                            <td class="amount-cell" style="width: 25%">₹{{ payment.amount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 25%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.amount|floatformat:0 }}</td>
+                            <td>{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.previous_total_paid|floatformat:0|default:"0" }}</td>
+                            <td>{{ payment.due_amount|floatformat:0|default:"0" }}</td>
                             {% endif %}
                         </tr>
                         {% endfor %}
                         {% for payment in cf_payments %}
                         <tr style="background-color: #fff8dc;">
                             {% if show_discount %}
-                            <td style="width: 40%"> Carry Forward</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.amount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.discount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td style="text-align: left;">Carry Forward</td>
+                            <td>{{ payment.amount|floatformat:0 }}</td>
+                            <td>{{ payment.discount|floatformat:0 }}</td>
+                            <td>{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.previous_total_paid|floatformat:0|default:"0" }}</td>
+                            <td>{{ payment.due_amount|floatformat:0|default:"0" }}</td>
                             {% else %}
-                            <td style="width: 50%"> Carry Forward</td>
-                            <td class="amount-cell" style="width: 25%">₹{{ payment.amount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 25%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td style="text-align: left;">Carry Forward</td>
+                            <td>{{ payment.amount|floatformat:0 }}</td>
+                            <td>{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.previous_total_paid|floatformat:0|default:"0" }}</td>
+                            <td>{{ payment.due_amount|floatformat:0|default:"0" }}</td>
                             {% endif %}
                         </tr>
                         {% endfor %}
                         {% for payment in fine_payments %}
-                        <tr style="background-color: #ffe4e1;">
+                        <tr>
                             {% if show_discount %}
-                            <td style="width: 40%">[FINE] {{ payment.note|slice:"14:"|slice:":18" }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.amount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.discount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 20%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td style="text-align: left;">{{ payment.note|slice:"14:"|default:"Other Fee" }}</td>
+                            <td>{{ payment.amount|floatformat:0 }}</td>
+                            <td>{{ payment.discount|floatformat:0 }}</td>
+                            <td>{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.previous_total_paid|floatformat:0|default:"0" }}</td>
+                            <td>{{ payment.due_amount|floatformat:0|default:"0" }}</td>
                             {% else %}
-                            <td style="width: 50%">[FINE] {{ payment.note|slice:"14:" }}</td>
-                            <td class="amount-cell" style="width: 25%">₹{{ payment.amount|floatformat:0 }}</td>
-                            <td class="amount-cell" style="width: 25%">₹{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td style="text-align: left;">{{ payment.note|slice:"14:"|default:"Other Fee" }}</td>
+                            <td>{{ payment.amount|floatformat:0 }}</td>
+                            <td>{{ payment.paid_amount|floatformat:0 }}</td>
+                            <td>{{ payment.previous_total_paid|floatformat:0|default:"0" }}</td>
+                            <td>{{ payment.due_amount|floatformat:0|default:"0" }}</td>
                             {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
-                
-                <table style="margin-top: 1mm; border-top: 1px solid #333;">
                     <tfoot>
-                        <tr style="background: #f0f0f0;">
+                        <tr style="background: #f0f0f0; font-weight: bold;">
                             {% if show_discount %}
-                            <td style="width: 40%"><strong>Total</strong></td>
-                            <td class="amount-cell" style="width: 20%"><strong>₹{{ total_amount|floatformat:0 }}</strong></td>
-                            <td class="amount-cell" style="width: 20%"><strong>₹{{ total_discount|floatformat:0 }}</strong></td>
-                            <td class="amount-cell" style="width: 20%"><strong>₹{{ total_paid|floatformat:0 }}</strong></td>
+                            <td style="text-align: left;"><strong>Total</strong></td>
+                            <td><strong>{{ total_amount|floatformat:0 }}</strong></td>
+                            <td><strong>{{ total_discount|floatformat:0 }}</strong></td>
+                            <td><strong>{{ total_paid|floatformat:0 }}</strong></td>
+                            <td><strong>{{ total_previous_paid|floatformat:0|default:"0" }}</strong></td>
+                            <td><strong>{{ total_due|floatformat:0|default:"0" }}</strong></td>
                             {% else %}
-                            <td style="width: 50%"><strong>Total</strong></td>
-                            <td class="amount-cell" style="width: 25%"><strong>₹{{ total_amount|floatformat:0 }}</strong></td>
-                            <td class="amount-cell" style="width: 25%"><strong>₹{{ total_paid|floatformat:0 }}</strong></td>
+                            <td style="text-align: left;"><strong>Total</strong></td>
+                            <td><strong>{{ total_amount|floatformat:0 }}</strong></td>
+                            <td><strong>{{ total_paid|floatformat:0 }}</strong></td>
+                            <td><strong>{{ total_previous_paid|floatformat:0|default:"0" }}</strong></td>
+                            <td><strong>{{ total_due|floatformat:0|default:"0" }}</strong></td>
                             {% endif %}
                         </tr>
                     </tfoot>
                 </table>
             </div>
 
-            <div class="payment-info">
-                <div class="info-grid">
-                    <div><strong>Mode:</strong> {{ payments.first.payment_mode }}</div>
-                    <div><strong>Txn:</strong> {{ payments.first.transaction_no|default:"-" }}</div>
-                </div>
-                <div class="info-grid"><div><strong>Remarks:</strong> Thank you</div></div>
+            <!-- Amount in Words Section -->
+            <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1mm 0; margin: 2mm 0; font-size: 10px;">
+                <strong>Amount in Word:</strong> {{ amount_in_words|default:"Rupees Four Thousand One Hundred Seventy Only" }}
             </div>
 
-            <div class="signature-line">Auth:<span class="signature-space"></span></div>
+            <!-- Signature Section -->
+            <div style="border-bottom: 2px solid #000; padding-bottom: 1mm; margin-top: 2mm; text-align: center; font-size: 10px;">
+                <div style="margin-bottom: 3mm;">Signature___________________________</div>
+            </div>
         </div>
         {% if not forloop.last %}<div class="cut-mark"></div>{% endif %}
     </div>

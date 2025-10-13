@@ -178,7 +178,7 @@
             <div class="font-bold">🖨️ {% trans "Print Receipt" %}</div>
             <div class="text-xs opacity-90">{% trans "Latest payment" %}</div>
         {% if deposits and deposits.0.receipt_no %}</a>{% else %}</div>{% endif %}
-        <a href="{% url 'students:edit_student' student.id %}" 
+        <a href="{% url 'students:edit_student' student.id %} " 
            class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg text-center">
             <i class="fas fa-user-edit mr-2 text-xl"></i>
             <div class="font-bold">✏️ {% trans "Edit Student" %}</div>
@@ -302,7 +302,7 @@
                                 </span>
                                 {% endif %}
                                 <a href="{% url 'student_fees:edit_deposit' dep.id %}" 
-                                   class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105"
+                                   class="hidden bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105"
                                    title="{% trans 'Edit Payment' %}">
                                     <i class="fas fa-edit"></i>
                                 </a>

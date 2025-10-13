@@ -3,6 +3,23 @@
 // console.log("fee_calculations.js loaded");
 
 export function updateFeeCalculations(form) {
+    // Use AtomicFeeCalculator if available
+    if (window.atomicFeeCalculator) {
+        const feeData = getFeeDataFromForm(form);
+        const totals = window.atomicFeeCalculator.calculateFeeTotals(feeData);
+        
+        updateSummaryDisplay(form, {
+            amount: totals.totalAmount,
+            discount: totals.totalDiscount,
+            payable: totals.totalPayable,
+            selected: totals.selectedCount
+        });
+        
+        toggleSubmitButton(form, totals.selectedCount > 0);
+        return totals;
+    }
+    
+    // Fallback to original calculation
     const rows = form.querySelectorAll('.fee-row');
     let totalAmount = 0;
     let totalDiscount = 0;
@@ -22,12 +39,10 @@ export function updateFeeCalculations(form) {
         const discount = discountInput ? parseFloat(discountInput.value) || 0 : 0;
         const payable = Math.max(0, amount - discount);
 
-        // Update row display
         payableCell.textContent = `₹ ${payable.toFixed(2)}`;
         payableCell.classList.toggle('text-green-600', isSelected);
         payableCell.classList.toggle('text-gray-400', !isSelected);
 
-        // Update totals if selected
         if (isSelected) {
             totalAmount += amount;
             totalDiscount += discount;
@@ -36,7 +51,6 @@ export function updateFeeCalculations(form) {
         }
     });
 
-    // Update summary
     updateSummaryDisplay(form, {
         amount: totalAmount,
         discount: totalDiscount,
@@ -44,7 +58,6 @@ export function updateFeeCalculations(form) {
         selected: selectedCount
     });
 
-    // Toggle submit button
     toggleSubmitButton(form, selectedCount > 0);
 
     return {
@@ -65,22 +78,26 @@ export function updateAllRowDisplays(form) {
 }
 
 export function calculateFeeTotals(form) {
-//   console.log("calculateFeeTotals called for form:", form.id);
-  const checkboxes = form.querySelectorAll('.fee-checkbox:checked');
-  let amount = 0;
-  let discount = 0;
+    // Use AtomicFeeCalculator if available
+    if (window.atomicFeeCalculator) {
+        const feeData = getFeeDataFromForm(form);
+        return window.atomicFeeCalculator.calculateFeeTotals(feeData);
+    }
+    
+    // Fallback calculation
+    const checkboxes = form.querySelectorAll('.fee-checkbox:checked');
+    let amount = 0;
+    let discount = 0;
 
-  checkboxes.forEach(cb => {
-    const row = cb.closest('.fee-row');
-    const { amount: rowAmount, discount: rowDiscount } = getRowValues(row);
-    // console.log("Row Values:", rowAmount, rowDiscount);
-    amount += rowAmount;
-    discount += rowDiscount;
-  });
+    checkboxes.forEach(cb => {
+        const row = cb.closest('.fee-row');
+        const { amount: rowAmount, discount: rowDiscount } = getRowValues(row);
+        amount += rowAmount;
+        discount += rowDiscount;
+    });
 
-  const payable = amount - discount;
-//   console.log("Calculated totals from fee_calculations:", { amount, discount, payable, selected: checkboxes.length });
-  return { amount, discount, payable, selected: checkboxes.length };
+    const payable = amount - discount;
+    return { amount, discount, payable, selected: checkboxes.length };
 }
 
 function getRowValues(row) {
@@ -123,10 +140,32 @@ function updateSummaryDisplay(form, { amount, discount, payable }) {
 }
 
 function toggleSubmitButton(form, enabled) {
-    // console.log("toggleSubmitButton called, enabled:", enabled);
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = !enabled;
-        // console.log("Submit button", submitBtn, "disabled:", submitBtn.disabled);
     }
+}
+
+function getFeeDataFromForm(form) {
+    const rows = form.querySelectorAll('.fee-row');
+    const feeData = [];
+    
+    rows.forEach(row => {
+        const checkbox = row.querySelector('.fee-checkbox');
+        const amountCell = row.querySelector('.fee-amount');
+        const discountInput = row.querySelector('.discount-input');
+        
+        if (checkbox && amountCell) {
+            const amount = parseFloat(amountCell.textContent.replace(/[^0-9.]/g, '')) || 0;
+            const discount = discountInput ? parseFloat(discountInput.value) || 0 : 0;
+            
+            feeData.push({
+                selected: checkbox.checked,
+                amount: amount,
+                discount: discount
+            });
+        }
+    });
+    
+    return feeData;
 }

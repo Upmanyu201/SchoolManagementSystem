@@ -707,6 +707,12 @@
 
 
     
+    <!-- Atomic Fee Calculator (Load First) -->
+    <script src="{% static 'js/atomic_fee_calculator.js' %}"></script>
+    
+    <!-- Consolidated Fees Handler (Depends on Atomic Calculator) -->
+    <script src="{% static 'js/consolidated_fees_handler.js' %}"></script>
+    
     <!-- Enhanced Form Handler -->
     <script src="{% static 'js/enhanced_form_handler.js' %}"></script>
     

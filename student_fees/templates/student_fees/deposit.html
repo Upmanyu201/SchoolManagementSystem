@@ -213,6 +213,11 @@ onclick="event.preventDefault(); event.stopPropagation(); console.log('🔍 [CLI
                             {% trans "Loading fees data..." %}
                         </p>
                     </div>
+                    
+                    <!-- Fee Form Component Container -->
+                    <div id="fee-form-content-{{ student.admission_number }}" style="display: none;">
+                        <!-- This will be populated by AJAX with fee_form.html content -->
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -293,6 +298,40 @@ onclick="event.preventDefault(); event.stopPropagation(); console.log('🔍 [CLI
 {% block scripts %}
 <script src="{% static 'js/consolidated_fees_handler.js' %}"></script>
 <script>
+// Check if consolidated_fees_handler.js loaded properly
+console.log('🔍 [DEPOSIT] Script loading check', {
+    ConsolidatedFeeManagerClass: typeof ConsolidatedFeeManager,
+    consolidatedFeeManagerInstance: !!window.consolidatedFeeManager,
+    scriptSrc: '{% static "js/consolidated_fees_handler.js" %}'
+});
+
+// Manual fallback if script didn't load
+if (typeof ConsolidatedFeeManager === 'undefined') {
+    console.warn('⚠️ [DEPOSIT] ConsolidatedFeeManager not loaded, using fallback');
+    
+    // Minimal fallback implementation
+    window.consolidatedFeeManager = {
+        loadStudentFeesDirectly: async function(studentId, admissionNumber, button, container) {
+            console.log('🔍 [FALLBACK] Loading fees for:', admissionNumber);
+            
+            try {
+                const response = await fetch(`/student_fees/ajax/get-student-fees/?admission_number=${encodeURIComponent(admissionNumber)}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    container.innerHTML = data.html;
+                    console.log('✅ [FALLBACK] Fees loaded successfully');
+                } else {
+                    container.innerHTML = `<div class="bg-red-50 p-4 rounded">Error: ${data.message}</div>`;
+                }
+            } catch (error) {
+                console.error('❌ [FALLBACK] Error:', error);
+                container.innerHTML = `<div class="bg-red-50 p-4 rounded">Failed to load fees: ${error.message}</div>`;
+            }
+        }
+    };
+}
+
 // Global function for loadStudentFees with collapse functionality
 function loadStudentFees(button) {
     const admissionNumber = button.getAttribute('data-admission-number');
@@ -342,6 +381,7 @@ function loadStudentFees(button) {
     button.innerHTML = '<i class="fas fa-times mr-2"></i>{% trans "Close Payment" %}';
     
     if (window.consolidatedFeeManager) {
+        console.log('🚀 [DEPOSIT] Calling fee manager for:', admissionNumber);
         window.consolidatedFeeManager.loadStudentFeesDirectly(
             button.getAttribute('data-student-id'), 
             admissionNumber, 
@@ -352,6 +392,8 @@ function loadStudentFees(button) {
             console.log('✅ [DONE] Finished loading for:', admissionNumber);
         });
     } else {
+        console.error('❌ [DEPOSIT] No fee manager available!');
+        targetContainer.innerHTML = '<div class="bg-red-50 p-4 rounded">Fee manager not available. Please refresh the page.</div>';
         button.dataset.loading = 'false';
     }
 }
@@ -371,11 +413,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000 + (index * 500));
     });
     
-    // Log fee manager initialization
+    // Log fee manager initialization with fallback
     if (window.consolidatedFeeManager) {
         console.log('✅ [TEMPLATE] ConsolidatedFeeManager initialized successfully');
+    } else if (typeof ConsolidatedFeeManager !== 'undefined') {
+        console.log('🔍 [TEMPLATE] ConsolidatedFeeManager class found, initializing...');
+        window.consolidatedFeeManager = new ConsolidatedFeeManager();
+        console.log('✅ [TEMPLATE] ConsolidatedFeeManager initialized from template');
     } else {
-        console.warn('⚠️ [TEMPLATE] ConsolidatedFeeManager not found');
+        console.warn('⚠️ [TEMPLATE] ConsolidatedFeeManager class not found - script loading issue');
     }
 });
 

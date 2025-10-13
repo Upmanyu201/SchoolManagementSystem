@@ -1,5 +1,9 @@
 // Consolidated Fees Handler - Merged functionality from all JS files
 // Cache bust: v1.1
+
+// Always define ConsolidatedFeeManager
+console.log('🔍 [FEES JS] Defining ConsolidatedFeeManager class');
+
 class ConsolidatedFeeManager {
     constructor() {
         this.apiEndpoints = {
@@ -193,12 +197,21 @@ class ConsolidatedFeeManager {
             });
 
             // Fetch the fees_rows.html template with student data
-            console.log('🚀 [AJAX] Requesting:', admissionNumber);
-            const response = await fetch(`/student_fees/ajax/get-student-fees/?admission_number=${encodeURIComponent(admissionNumber)}&discount_enabled=${isDiscountEnabled}`, {
+            const requestUrl = `/student_fees/ajax/get-student-fees/?admission_number=${encodeURIComponent(admissionNumber)}&discount_enabled=${isDiscountEnabled}`;
+            console.log('🚀 [AJAX] Requesting:', admissionNumber, 'URL:', requestUrl);
+            
+            const response = await fetch(requestUrl, {
                 method: 'GET',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json, text/html, */*'
                 }
+            });
+            
+            console.log('🔍 [AJAX] Response headers:', {
+                contentType: response.headers.get('content-type'),
+                status: response.status,
+                statusText: response.statusText
             });
             
             console.log('🔍 [FEES JS] Response received', {
@@ -264,10 +277,20 @@ class ConsolidatedFeeManager {
             console.error('❌ [FEES JS] Exception in loadStudentFees', {
                 error: error.message,
                 stack: error.stack,
-                admissionNumber,
-                studentId
+                admissionNumber: admissionNumber,
+                studentId: studentId,
+                containerId: container?.id,
+                requestUrl: `/student_fees/ajax/get-student-fees/?admission_number=${encodeURIComponent(admissionNumber)}`
             });
-            container.innerHTML = this.getErrorHTML(`Failed to load fees: ${error.message}`);
+            
+            // Show detailed error in container
+            const errorHtml = this.getErrorHTML(`Failed to load fees: ${error.message}`);
+            console.log('🔍 [FEES JS] Setting error HTML', {
+                errorHtml: errorHtml.substring(0, 200),
+                containerId: container?.id
+            });
+            
+            container.innerHTML = errorHtml;
             // Clear processing state and remove from cache on error
             button.dataset.processing = 'false';
             this.loadedStudents.delete(admissionNumber);
@@ -487,11 +510,17 @@ class ConsolidatedFeeManager {
         }
         console.log('✅ [FEES JS] Form found, initializing for admission:', admissionNumber, 'Form ID:', form.id);
 
-        // Set current date and time
+        // Set current date and time - FIXED format
         const now = new Date();
         const depositDateInput = form.querySelector('#deposit_date');
-        if (depositDateInput) {
-            depositDateInput.value = now.toISOString().slice(0, 16);
+        if (depositDateInput && !depositDateInput.value) {
+            // Format: YYYY-MM-DDTHH:MM for datetime-local input
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            depositDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
         }
 
         // Payment method change handler
@@ -530,7 +559,10 @@ class ConsolidatedFeeManager {
                     row.classList.remove('bg-green-50', 'border-green-200');
                 }
                 
-                // Update totals with slight delay to prevent rapid calculations
+                // IMMEDIATE totals update for better responsiveness
+                this.updateTotals(form);
+                
+                // Also update with slight delay to ensure DOM changes are processed
                 clearTimeout(this.updateTimeout);
                 this.updateTimeout = setTimeout(() => {
                     this.updateTotals(form);
@@ -564,15 +596,20 @@ class ConsolidatedFeeManager {
             });
         });
 
-        // ✅ FIX: Payable input change handler
-        const payableInputs = form.querySelectorAll('input[name^="payable_"]');
-        payableInputs.forEach(input => {
-            input.addEventListener('input', () => {
+        // ✅ FIX: Payable input change handler (will be added dynamically by AtomicFeeCalculator)
+        // Event delegation for dynamically created payable inputs
+        form.addEventListener('input', (e) => {
+            if (e.target.name && e.target.name.includes('payable_')) {
+                console.log('🔍 [FEES JS] Payable input changed', {
+                    name: e.target.name,
+                    value: e.target.value
+                });
+                
                 clearTimeout(this.updateTimeout);
                 this.updateTimeout = setTimeout(() => {
                     this.updateTotals(form);
                 }, 300);
-            });
+            }
         });
 
         // Form submission
@@ -621,17 +658,120 @@ class ConsolidatedFeeManager {
             });
         }
 
-        // Initialize totals
+        // Initialize totals - CRITICAL FIX: Force immediate calculation
         console.log('🔍 [FEES JS] Initializing totals calculation');
+        
+        // IMMEDIATE calculation
         this.updateTotals(form);
         
-        // Set default payment date
+        // Additional calculations with delays to ensure DOM is ready
+        setTimeout(() => {
+            this.updateTotals(form);
+            console.log('🔍 [FEES JS] First delayed calculation completed');
+        }, 100);
+        
+        setTimeout(() => {
+            this.updateTotals(form);
+            console.log('🔍 [FEES JS] Second delayed calculation completed');
+        }, 500);
+        
+        setTimeout(() => {
+            this.updateTotals(form);
+            console.log('🔍 [FEES JS] Final delayed calculation completed');
+        }, 1000);
+        
+        // Set current date and time as default
         const paymentDateInput = form.querySelector('#deposit_date');
-        if (paymentDateInput) {
-            paymentDateInput.value = new Date().toISOString().slice(0, 16);
+        if (paymentDateInput && !paymentDateInput.value) {
+            const now = new Date();
+            paymentDateInput.value = now.toISOString().slice(0, 16);
         }
         
         console.log('✅ [FEES JS] Form initialization completed');
+    }
+
+
+
+    /**
+     * ENHANCED fallback calculation method if AtomicFeeCalculator is not available
+     */
+    fallbackUpdateTotals(form) {
+        console.log('🔍 [FEES JS] Using ENHANCED fallback calculation method');
+        
+        const selectedFees = form.querySelectorAll('.fee-checkbox:checked');
+        let totalOriginal = 0;
+        let totalDiscount = 0;
+        let totalPayable = 0;
+        let totalDue = 0;
+        
+        selectedFees.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            const amount = parseFloat(checkbox.dataset.amount || 0);
+            const paidAmount = parseFloat(checkbox.dataset.paidAmount || row.dataset.paidAmount || 0);
+            const discountPaid = parseFloat(checkbox.dataset.discountPaid || row.dataset.discountPaid || 0);
+            
+            const discountInput = row.querySelector('.discount-input');
+            const currentDiscount = discountInput ? parseFloat(discountInput.value || 0) : 0;
+            
+            const payableInput = row.querySelector('.payable-input');
+            
+            // Calculate actual payable amount
+            let payableAmount = amount - (paidAmount + discountPaid) - currentDiscount;
+            payableAmount = Math.max(0, payableAmount);
+            
+            // If there's a custom payable input, use that value
+            if (payableInput && payableInput.value) {
+                const customPayable = parseFloat(payableInput.value || 0);
+                if (customPayable <= payableAmount) {
+                    const dueAmount = Math.max(0, payableAmount - customPayable);
+                    payableAmount = customPayable;
+                    totalDue += dueAmount;
+                }
+            }
+            
+            totalOriginal += amount;
+            totalDiscount += currentDiscount;
+            totalPayable += payableAmount;
+        });
+        
+        console.log('🔍 [FALLBACK] Calculated totals:', {
+            totalOriginal, totalDiscount, totalPayable, totalDue,
+            selectedCount: selectedFees.length
+        });
+        
+        // ENHANCED: Update totals display with multiple element targeting
+        const updateElements = [
+            { ids: ['total_selected', 'total-original'], value: totalOriginal },
+            { ids: ['total_discount', 'total-discount'], value: totalDiscount },
+            { ids: ['total_payable', 'total-payable', 'final-amount'], value: totalPayable },
+            { ids: ['total_due', 'total-due'], value: totalDue }
+        ];
+        
+        updateElements.forEach(({ ids, value }) => {
+            ids.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = `₹ ${value.toFixed(2)}`;
+                    console.log(`✅ [FALLBACK] Updated ${id}: ₹ ${value.toFixed(2)}`);
+                    
+                    // Visual feedback
+                    element.style.backgroundColor = '#f0f9ff';
+                    setTimeout(() => { element.style.backgroundColor = ''; }, 300);
+                }
+            });
+        });
+        
+        console.log('✅ [FEES JS] Enhanced fallback totals updated successfully');
+    }
+
+    /**
+     * Helper to update element text content
+     */
+    updateElement(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = value;
+        }
     }
 
     togglePaymentFields(mode, extraFields, form) {
@@ -659,43 +799,31 @@ class ConsolidatedFeeManager {
     }
 
     updateTotals(form) {
-        console.log('🔍 [FEES JS] updateTotals called');
-        let totalSelected = 0;
-        let totalPayable = 0;
-
-        form.querySelectorAll('.fee-row').forEach(row => {
-            const checkbox = row.querySelector('.fee-checkbox');
-            
-            if (checkbox && checkbox.checked) {
-                const amountText = row.querySelector('.fee-amount')?.textContent;
-                const amount = parseFloat(amountText?.replace('₹', '').replace(',', '').trim() || 0);
-                
-                const payableInput = row.querySelector(`input[name="payable_${checkbox.value}"]`);
-                const payable = payableInput ? parseFloat(payableInput.value || 0) : 0;
-                
-                totalSelected += amount;
-                totalPayable += payable;
-                row.classList.add('bg-green-50');
-            } else {
-                row.classList.remove('bg-green-50');
-            }
+        console.log('🔍 [FEES JS] updateTotals called - delegating to AtomicFeeCalculator');
+        
+        if (!window.atomicFeeCalculator) {
+            console.error('❌ [FEES JS] AtomicFeeCalculator not available, using fallback');
+            this.fallbackUpdateTotals(form);
+            return;
+        }
+        
+        const feeData = this.getFeeDataFromForm(form);
+        console.log('🔍 [FEES JS] Fee data for calculation:', {
+            totalFees: feeData.length,
+            selectedFees: feeData.filter(f => f.selected).length,
+            formId: form.id,
+            feeData: feeData.map(f => ({ id: f.id, selected: f.selected, amount: f.amount, discount: f.discount, custom_payable: f.custom_payable }))
         });
         
-        console.log('✅ [FEES JS] Totals calculated', { totalSelected, totalPayable });
-        
-        const totalSelectedEl = form.querySelector('#total_selected');
-        const totalPayableEl = form.querySelector('#total_payable');
-        
-        if (totalSelectedEl) {
-            totalSelectedEl.textContent = `₹ ${totalSelected.toFixed(2)}`;
+        // CRITICAL FIX: Call updateFeeDisplay with proper container ID
+        try {
+            window.atomicFeeCalculator.updateFeeDisplay(form.id, feeData);
+            console.log('✅ [FEES JS] Successfully delegated to AtomicFeeCalculator');
+        } catch (error) {
+            console.error('❌ [FEES JS] AtomicFeeCalculator error:', error);
+            console.log('🔍 [FEES JS] Falling back to manual calculation');
+            this.fallbackUpdateTotals(form);
         }
-        if (totalPayableEl) {
-            totalPayableEl.textContent = `₹ ${totalPayable.toFixed(2)}`;
-            totalPayableEl.style.color = totalPayable > 0 ? '#7c3aed' : '#6b7280';
-        }
-        
-        form.dataset.totalSelected = totalSelected.toFixed(2);
-        form.dataset.totalPayable = totalPayable.toFixed(2);
     }
 
     async handleFormSubmission(form) {
@@ -830,16 +958,34 @@ class ConsolidatedFeeManager {
     }
 
     getErrorHTML(message) {
-        return `
+        const errorHtml = `
             <div class="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
                 <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
                 <p class="text-red-700 font-semibold">${message}</p>
+                <div class="mt-4 text-sm text-red-600">
+                    <p>Debug Info: ${new Date().toISOString()}</p>
+                    <p>Check browser console for detailed logs</p>
+                </div>
             </div>
         `;
+        
+        console.log('🔍 [FEES JS] Generated error HTML', {
+            message: message,
+            htmlLength: errorHtml.length
+        });
+        
+        return errorHtml;
     }
 
     showPaymentModal(form, modal) {
         console.log('🔍 [FEES JS] Showing payment modal');
+        
+        // CRITICAL FIX: Get student data from FORM, not cached variables
+        const studentId = form.querySelector('input[name="student_id"]')?.value;
+        const formId = form.id;
+        const admissionNumber = formId.replace('depositForm-', '');
+        
+        console.log('🔍 [FEES JS] Modal student data from form:', { studentId, admissionNumber, formId });
         
         // CRITICAL FIX: Position modal within correct student card
         const studentCard = form.closest('.student-card');
@@ -870,12 +1016,8 @@ class ConsolidatedFeeManager {
         // Clear modal data first
         this.clearModalData(modal);
         
-        // Get current student info from form
-        const studentId = form.querySelector('input[name="student_id"]').value;
-        const formId = form.id;
-        const admissionNumber = formId.replace('depositForm-', '');
-        
-        console.log('🔍 [FEES JS] Modal for student:', { studentId, admissionNumber, formId });
+        // Student data already extracted above - use those variables
+        console.log('🔍 [FEES JS] Using extracted student data:', { studentId, admissionNumber, formId });
         
         // Get student name from card
         const studentName = studentCard.querySelector('h3')?.textContent?.trim() || 'Unknown Student';
@@ -888,51 +1030,77 @@ class ConsolidatedFeeManager {
         const selectedFees = form.querySelectorAll('.fee-checkbox:checked');
         const paymentMethod = form.querySelector('#payment_mode').value;
         
-        // Update modal content
+        // Update payment details
         const modalPaymentMethod = modal.querySelector('#modalPaymentMethod');
-        if (modalPaymentMethod) modalPaymentMethod.textContent = paymentMethod;
+        const modalPaymentDate = modal.querySelector('#modalPaymentDate');
+        const paymentDateInput = form.querySelector('#deposit_date');
         
+        if (modalPaymentMethod) modalPaymentMethod.textContent = paymentMethod;
+        if (modalPaymentDate && paymentDateInput) {
+            const dateValue = paymentDateInput.value;
+            if (dateValue) {
+                const formattedDate = new Date(dateValue).toLocaleString();
+                modalPaymentDate.textContent = formattedDate;
+            }
+        }
+        
+        // Update fee list and calculate totals
         const feesList = modal.querySelector('#modalFeesList');
         if (feesList) {
             feesList.innerHTML = '';
-            let totalAmount = 0;
             
             let totalOriginal = 0;
+            let totalDiscount = 0;
             let totalPayable = 0;
+            let totalDue = 0;
             
             selectedFees.forEach(checkbox => {
                 const row = checkbox.closest('tr');
                 const feeName = row.querySelector('td:nth-child(2) .font-medium').textContent.trim();
                 
-                // Read original amount
+                // Read amounts
                 const amountText = row.querySelector('.fee-amount')?.textContent;
                 const amount = parseFloat(amountText?.replace('₹', '').replace(',', '').trim() || 0);
                 
-                // Read payable amount
+                const discountInput = row.querySelector(`input[name="discount_${checkbox.value}"]`);
+                const discount = discountInput ? parseFloat(discountInput.value || 0) : 0;
+                
                 const payableInput = row.querySelector(`input[name="payable_${checkbox.value}"]`);
                 const payable = payableInput ? parseFloat(payableInput.value || 0) : 0;
                 
-                totalOriginal += amount;
-                totalPayable += payable;
+                const dueText = row.querySelector('.due-amount')?.textContent;
+                const due = parseFloat(dueText?.replace('₹', '').replace(',', '').trim() || 0);
                 
-                const feeItem = document.createElement('div');
-                feeItem.className = 'flex justify-between text-sm';
-                feeItem.innerHTML = `
-                    <span>${feeName}</span>
-                    <div class="text-right">₹ ${payable.toFixed(2)}</div>
-                `;
-                feesList.appendChild(feeItem);
+                totalOriginal += amount;
+                totalDiscount += discount;
+                totalPayable += payable;
+                totalDue += due;
+                
+                // Skip individual fee items - only show totals
             });
             
-            // Update modal totals
-            const modalTotal = modal.querySelector('#modalTotalAmount');
-            const modalFinal = modal.querySelector('#modalFinalAmount');
+            // Update modal totals - use document.querySelector as fallback
+            const modalTotalAmount = modal.querySelector('#modalTotalAmount') || document.querySelector('#modalTotalAmount');
+            const modalTotalDiscount = modal.querySelector('#modalTotalDiscount') || document.querySelector('#modalTotalDiscount');
+            const modalTotalPayable = modal.querySelector('#modalTotalPaying') || document.querySelector('#modalTotalPaying');
+            const modalTotalDue = modal.querySelector('#modalTotalDue') || document.querySelector('#modalTotalDue');
+            const modalDiscountRow = modal.querySelector('#modalDiscountRow') || document.querySelector('#modalDiscountRow');
             
-            if (modalTotal) modalTotal.textContent = `₹ ${totalOriginal.toFixed(2)}`;
-            if (modalFinal) modalFinal.textContent = `₹ ${totalPayable.toFixed(2)}`;
+            console.log('🔍 [MODAL] Updating totals:', { totalOriginal, totalPayable, totalDue, modalTotalPayable: !!modalTotalPayable });
             
-            console.log('✅ [FEES JS] Modal calculations updated:', {
-                totalAmount,
+            if (modalTotalAmount) modalTotalAmount.textContent = `₹ ${totalOriginal.toFixed(2)}`;
+            if (modalTotalPayable) modalTotalPayable.textContent = `₹ ${totalPayable.toFixed(2)}`;
+            if (modalTotalDue) modalTotalDue.textContent = `₹ ${totalDue.toFixed(2)}`;
+            
+            if (totalDiscount > 0) {
+                if (modalTotalDiscount) modalTotalDiscount.textContent = `₹ ${totalDiscount.toFixed(2)}`;
+                if (modalDiscountRow) modalDiscountRow.style.display = 'flex';
+            } else {
+                if (modalDiscountRow) modalDiscountRow.style.display = 'none';
+            }
+            
+            console.log('✅ [FEES JS] Modal updated:', {
+                totalOriginal, totalDiscount, totalPayable, totalDue,
                 selectedCount: selectedFees.length
             });
         }
@@ -993,16 +1161,57 @@ class ConsolidatedFeeManager {
         const feesList = modal.querySelector('#modalFeesList');
         if (feesList) feesList.innerHTML = '';
         
-        const modalTotal = modal.querySelector('#modalTotalAmount');
-        const modalDiscount = modal.querySelector('#modalTotalDiscount');
-        const modalFinal = modal.querySelector('#modalFinalAmount');
+        const modalTotalAmount = modal.querySelector('#modalTotalAmount');
+        const modalTotalDiscount = modal.querySelector('#modalTotalDiscount');
+        const modalTotalPayable = modal.querySelector('#modalTotalPayable');
+        const modalTotalDue = modal.querySelector('#modalTotalDue');
+        const modalPaymentDate = modal.querySelector('#modalPaymentDate');
         
-        if (modalTotal) modalTotal.textContent = '₹ 0.00';
-        if (modalDiscount) modalDiscount.textContent = '₹ 0.00';
-        if (modalFinal) modalFinal.textContent = '₹ 0.00';
+        if (modalTotalAmount) modalTotalAmount.textContent = '₹ 0.00';
+        if (modalTotalDiscount) modalTotalDiscount.textContent = '₹ 0.00';
+        if (modalTotalPayable) modalTotalPayable.textContent = '₹ 0.00';
+        if (modalTotalDue) modalTotalDue.textContent = '₹ 0.00';
+        if (modalPaymentDate) modalPaymentDate.textContent = '-';
         
         console.log('✅ [FEES JS] Modal data cleared');
     }
+
+    getFeeDataFromForm(form) {
+        const rows = form.querySelectorAll('.fee-row');
+        const feeData = [];
+        
+        rows.forEach((row, index) => {
+            const checkbox = row.querySelector('.fee-checkbox');
+            const discountInput = row.querySelector('.discount-input');
+            const payableInput = row.querySelector('.payable-input');
+            
+            if (checkbox) {
+                const amount = parseFloat(checkbox.dataset.amount || 0);
+                const discount = discountInput ? parseFloat(discountInput.value || 0) : 0;
+                const paidAmount = parseFloat(checkbox.dataset.paidAmount || row.dataset.paidAmount || 0);
+                const discountPaid = parseFloat(checkbox.dataset.discountPaid || row.dataset.discountPaid || 0);
+                const customPayable = payableInput ? parseFloat(payableInput.value || 0) : null;
+                
+                const feeItem = {
+                    id: checkbox.value,
+                    selected: checkbox.checked,
+                    amount: amount,
+                    discount: discount,
+                    paid_amount: paidAmount,
+                    discount_paid: discountPaid,
+                    custom_payable: customPayable
+                };
+                
+                console.log(`🔍 [FEE DATA] Row ${index}: ${JSON.stringify(feeItem)}`);
+                feeData.push(feeItem);
+            }
+        });
+        
+        console.log(`🔍 [FEE DATA] Total fees: ${feeData.length}, Selected: ${feeData.filter(f => f.selected).length}`);
+        return feeData;
+    }
+    
+
 
     showMessage(message, type = 'info') {
         document.querySelectorAll('.alert-message').forEach(el => el.remove());
@@ -1062,27 +1271,31 @@ function loadStudentFees(button) {
     }
 }
 
+// End of ConsolidatedFeeManager class
+
+// Make ConsolidatedFeeManager globally available
+window.ConsolidatedFeeManager = ConsolidatedFeeManager;
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     try {
-        window.consolidatedFeeManager = new ConsolidatedFeeManager();
-        console.log('✅ [FEES JS] ConsolidatedFeeManager initialized successfully');
+        if (!window.consolidatedFeeManager) {
+            window.consolidatedFeeManager = new ConsolidatedFeeManager();
+            console.log('✅ [FEES JS] ConsolidatedFeeManager initialized successfully');
+        }
     } catch (error) {
         console.error('❌ [FEES JS] Failed to initialize ConsolidatedFeeManager:', error);
     }
 });
 
-// Fallback initialization for immediate execution
-if (document.readyState === 'loading') {
-    // DOM is still loading
-} else {
-    // DOM is already loaded
+// Immediate initialization if DOM is already ready
+if (document.readyState !== 'loading') {
     try {
         if (!window.consolidatedFeeManager) {
             window.consolidatedFeeManager = new ConsolidatedFeeManager();
-            console.log('✅ [FEES JS] ConsolidatedFeeManager initialized (fallback)');
+            console.log('✅ [FEES JS] ConsolidatedFeeManager initialized (immediate)');
         }
     } catch (error) {
-        console.error('❌ [FEES JS] Fallback initialization failed:', error);
+        console.error('❌ [FEES JS] Immediate initialization failed:', error);
     }
 }

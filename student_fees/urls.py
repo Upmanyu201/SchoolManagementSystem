@@ -41,8 +41,8 @@ urlpatterns = [
     path('api/balance/<int:student_id>/', StudentBalanceAPIView.as_view(), name='api_student_balance'),
     
     # Legacy AJAX endpoints (for backward compatibility)
-    path('ajax/get-student-fees/', get_student_fees_ajax, name='get_student_fees'),
-    path('submit-deposit/', submit_deposit_ajax, name='submit_deposit'),
+    path('ajax/get-student-fees/', get_student_fees, name='get_student_fees'),
+    path('submit-deposit/', submit_deposit, name='submit_deposit'),
     
 
 ]

@@ -16,8 +16,7 @@ from decimal import Decimal
 from users.decorators import module_required
 import logging
 
-# Integrated fee service
-from .integration import integrated_service, CENTRALIZED_SERVICE_AVAILABLE
+from core.fee_management.calculators import AtomicFeeCalculator
 
 from transport.models import TransportAssignment
 from fines.models import Fine, FineStudent
@@ -60,6 +59,72 @@ def validate_receipt_number(receipt_no):
     if not receipt_no or len(receipt_no) > 50:
         raise ValidationError("Invalid receipt number")
     return receipt_no
+
+def number_to_words(num):
+    """Convert number to words"""
+    try:
+        num = int(float(num))
+    except (ValueError, TypeError):
+        return "zero"
+    
+    if num == 0:
+        return "zero"
+    
+    ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+            "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+            "seventeen", "eighteen", "nineteen"]
+    
+    tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+    
+    def convert_hundreds(n):
+        result = ""
+        if n >= 100:
+            result += ones[n // 100] + " hundred "
+            n %= 100
+        if n >= 20:
+            result += tens[n // 10] + " "
+            n %= 10
+        if n > 0:
+            result += ones[n] + " "
+        return result.strip()
+    
+    if num < 0:
+        return "minus " + number_to_words(-num)
+    
+    if num < 1000:
+        return convert_hundreds(num)
+    elif num < 100000:
+        thousands = num // 1000
+        remainder = num % 1000
+        result = convert_hundreds(thousands) + " thousand"
+        if remainder > 0:
+            result += " " + convert_hundreds(remainder)
+        return result
+    elif num < 10000000:
+        lakhs = num // 100000
+        remainder = num % 100000
+        result = convert_hundreds(lakhs) + " lakh"
+        if remainder > 0:
+            if remainder >= 1000:
+                result += " " + convert_hundreds(remainder // 1000) + " thousand"
+                remainder %= 1000
+            if remainder > 0:
+                result += " " + convert_hundreds(remainder)
+        return result
+    else:
+        crores = num // 10000000
+        remainder = num % 10000000
+        result = convert_hundreds(crores) + " crore"
+        if remainder > 0:
+            if remainder >= 100000:
+                result += " " + convert_hundreds(remainder // 100000) + " lakh"
+                remainder %= 100000
+            if remainder >= 1000:
+                result += " " + convert_hundreds(remainder // 1000) + " thousand"
+                remainder %= 1000
+            if remainder > 0:
+                result += " " + convert_hundreds(remainder)
+        return result
 
 # Optional ML integration
 try:
@@ -260,19 +325,18 @@ def get_student_fees(request):
         student = Student.objects.all_statuses().select_related('class_section').get(admission_number=admission_number)
         logger.info(f"✅ [FEES DEBUG] Student found: {student.first_name} {student.last_name} (ID: {student.id})")
         
-        # Use integrated fee service
-        logger.info(f"🔍 [FEES DEBUG] CENTRALIZED_SERVICE_AVAILABLE: {CENTRALIZED_SERVICE_AVAILABLE}")
-        logger.info(f"🔍 [FEES DEBUG] Using integrated fee service for student {student.id}")
+        # Use AtomicFeeCalculator
+        logger.info(f"🔍 [FEES DEBUG] Using AtomicFeeCalculator for student {student.id}")
         
-        payable_fees = integrated_service.get_student_payable_fees(student, discount_enabled)
-        balance_info = integrated_service.get_student_balance_info(student)
+        payable_fees = AtomicFeeCalculator.get_payable_fees(student, discount_enabled)
+        balance_info = AtomicFeeCalculator.calculate_student_balance(student)
         
         logger.info(f"✅ [FEES DEBUG] Integrated service returned {len(payable_fees)} payable fees")
         # Debug: Log each fee for verification
         for i, fee in enumerate(payable_fees):
             logger.info(f"🔍 [FEES DEBUG] Payable fee {i+1}: {fee}")
         
-        # Sanitize data for template
+        # Pass fees directly from AtomicFeeCalculator (already sanitized)
         logger.info(f"🔍 [FEES DEBUG] Processing {len(payable_fees)} fees for template")
         safe_fees = []
         
@@ -282,8 +346,12 @@ def get_student_fees(request):
             if isinstance(fee, dict):
                 safe_fees.append({
                     'id': fee.get('id', f'fee_{i}'),
-                    'amount': fee.get('amount', fee.get('payable', 0)),
-                    'display_name': sanitize_html_output(fee.get('name', fee.get('display_name', fee.get('fee_type', 'Fee')))),
+                    'amount': fee.get('amount', 0),  # Original amount
+                    'payable': fee.get('payable', fee.get('amount', 0)),  # Calculated payable amount
+                    'due': fee.get('due', fee.get('payable', fee.get('amount', 0))),  # Due amount
+                    'paid_amount': fee.get('paid_amount', 0),  # Already paid
+                    'discount_paid': fee.get('discount_paid', 0),  # Discount already given
+                    'display_name': sanitize_html_output(fee.get('display_name', fee.get('name', fee.get('fee_type', 'Fee')))),
                     'type': fee.get('type', fee.get('fee_type', 'Fee')),
                     'is_overdue': fee.get('is_overdue', False),
                     'due_date': fee.get('due_date', '')
@@ -293,6 +361,10 @@ def get_student_fees(request):
                 safe_fees.append({
                     'id': f'fee_{i}',
                     'amount': 0,
+                    'payable': 0,
+                    'due': 0,
+                    'paid_amount': 0,
+                    'discount_paid': 0,
                     'display_name': str(fee),
                     'type': 'Fee',
                     'is_overdue': False,
@@ -311,6 +383,12 @@ def get_student_fees(request):
         logger.info(f"🔍 [FEES DEBUG] Template context discount_enabled type: {type(discount_enabled)}, value: {discount_enabled}, bool: {bool(discount_enabled)}")
         html = render_to_string('student_fees/components/fee_form.html', template_context)
         logger.info(f"✅ [FEES DEBUG] Template rendered successfully, HTML length: {len(html)}")
+        
+        # Debug: Check if fee_form content is actually in the HTML
+        if 'fee-form-container' in html:
+            logger.info(f"✅ [FEES DEBUG] fee-form-container found in rendered HTML")
+        else:
+            logger.warning(f"⚠️ [FEES DEBUG] fee-form-container NOT found in rendered HTML")
         
         # Debug: Check if discount column is in rendered HTML
         discount_column_count = html.count('Discount')
@@ -386,11 +464,11 @@ def submit_deposit(request):
             # Prepare payment data
             payment_items = []
             for fee_id in selected_fees:
-                amount_key = f'amount_{fee_id}'
+                original_amount_key = f'original_amount_{fee_id}'
                 discount_key = f'discount_{fee_id}'
                 payable_key = f'payable_{fee_id}'
                 
-                original_amount = Decimal(request.POST.get(amount_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
+                original_amount = Decimal(request.POST.get(original_amount_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
                 discount = Decimal(request.POST.get(discount_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
                 payable_amount = Decimal(request.POST.get(payable_key, '0').replace('₹', '').replace(',', '')) or Decimal('0')
                 
@@ -401,11 +479,12 @@ def submit_deposit(request):
                 
                 logger.info(f"✅ [BACKEND] Fee {fee_id}: final amount={amount}")
                 
-                if amount > 0:
+                if payable_amount > 0:
                     payment_items.append({
                         'fee_id': fee_id,
-                        'amount': amount,
-                        'discount': Decimal('0')
+                        'original_amount': original_amount,
+                        'discount': discount,
+                        'paid_amount': payable_amount
                     })
             
             if not payment_items:
@@ -429,19 +508,16 @@ def submit_deposit(request):
             
             for item in payment_items:
                 fee_id = item['fee_id']
-                amount = item['amount']
+                original_amount = item['original_amount']
                 discount = item['discount']
-                paid_amount = amount
+                paid_amount = item['paid_amount']
                 
-                if paid_amount <= 0:
-                    continue
-                
-                # Create deposit based on fee type
+                # Create deposit with correct amounts
                 deposit_data = {
                     'student': student,
-                    'amount': amount,
-                    'discount': discount,
-                    'paid_amount': paid_amount,
+                    'amount': original_amount,  # Original fee amount from form
+                    'discount': discount,       # Discount applied
+                    'paid_amount': paid_amount, # What user paid
                     'receipt_no': receipt_no,
                     'payment_mode': request.POST.get('payment_mode', 'Cash'),
                     'transaction_no': request.POST.get('transaction_no', ''),
@@ -486,13 +562,16 @@ def submit_deposit(request):
             # Clear cache and trigger post-payment sync
             try:
                 from django.core.cache import cache
-                # Clear all balance cache keys for this student
-                cache_keys = [f"balance_{student.id}_{hash(str(getattr(student, 'updated_at', i)))}" for i in range(100)]
-                for key in cache_keys:
-                    cache.delete(key)
+                # Clear AtomicFeeCalculator cache for this student
+                for hour in range(24):
+                    cache_key = f"balance_{student.id}_{hour}"
+                    cache.delete(cache_key)
                 cache.delete(f"balance_{student.id}")
                 cache.delete('dashboard_stats')
                 cache.set('dashboard_last_update', django_timezone.now().isoformat(), 3600)
+                
+                # Clear AtomicFeeCalculator cache
+                AtomicFeeCalculator._clear_student_cache(student)
                 
                 logger.info("Balance cache cleared for student after payment")
             except Exception as cache_error:
@@ -513,12 +592,19 @@ def submit_deposit(request):
                 
                 # Log message to central messaging history
                 message_content = f"Payment received! ₹{total_paid} for {student.get_full_display_name()}. Receipt: {receipt_no}"
+                
+                # Handle both boolean and dict return types
+                if isinstance(sms_result, dict):
+                    sms_success = sms_result.get('success', False)
+                else:
+                    sms_success = bool(sms_result)
+                
                 CrossModuleMessageLogger.log_fee_payment_notification(
                     user=request.user,
                     student=student,
                     message_content=message_content,
                     phone=student.mobile_number,
-                    status='SENT' if sms_result.get('success') else 'FAILED'
+                    status='SENT' if sms_success else 'FAILED'
                 )
                 
             except Exception as e:
@@ -561,18 +647,9 @@ def student_fee_preview(request, student_id):
         student_id = validate_numeric_id(student_id, "Student ID")
         student = get_object_or_404(Student.objects.all_statuses(), pk=student_id)
         
-        # Use integrated fee service with fallback
-        balance_info = integrated_service.get_student_balance_info(student)
-        payment_history = integrated_service.get_student_payment_history(student)
-        
-        # Fallback to local service if integrated service returns empty values
-        if not balance_info or not isinstance(balance_info, dict) or 'total_balance' not in balance_info:
-            logger.warning(f"Integrated service returned invalid balance, using local fallback for student {student.id}")
-            balance_info = FeeCalculationService.calculate_student_balance(student)
-            
-        if not payment_history or not isinstance(payment_history, dict) or 'total_paid' not in payment_history:
-            logger.warning(f"Integrated service returned invalid payment history, using local fallback for student {student.id}")
-            payment_history = FeeReportingService.get_student_payment_history(student)
+        # Use AtomicFeeCalculator
+        balance_info = AtomicFeeCalculator.calculate_student_balance(student)
+        payment_history = FeeReportingService.get_student_payment_history(student)
         
         # ML Insights
         ml_insights = {}
@@ -589,8 +666,8 @@ def student_fee_preview(request, student_id):
         total_fees_due = applied_fees + cf_amount + fine_amount
         
         # Use same calculation as reports: Total fees - Total paid - Total discount + Unpaid fines
-        total_received = Decimal(str(payment_history.get('total_paid', 0)))
-        total_discount = Decimal(str(payment_history.get('total_discount', 0)))
+        total_received = payment_history.get('total_paid', Decimal('0'))
+        total_discount = payment_history.get('total_discount', Decimal('0'))
         total_due = max(total_fees_due - total_received - total_discount + fine_amount, Decimal('0'))
         
         # Debug logging
@@ -600,9 +677,9 @@ def student_fee_preview(request, student_id):
         
         # Calculate separate payment totals
         all_payments = payment_history.get('all_payments', [])
-        fee_payments_only = sum(d.paid_amount for d in all_payments if not ('Fine Payment' in (d.note or '') or 'Carry Forward' in (d.note or '')))
-        fine_payments_only = sum(d.paid_amount for d in all_payments if 'Fine Payment' in (d.note or ''))
-        cf_payments_only = sum(d.paid_amount for d in all_payments if 'Carry Forward' in (d.note or ''))
+        fee_payments_only = Decimal(str(sum(d.paid_amount for d in all_payments if not ('Fine Payment' in (d.note or '') or 'Carry Forward' in (d.note or '')))))
+        fine_payments_only = Decimal(str(sum(d.paid_amount for d in all_payments if 'Fine Payment' in (d.note or ''))))
+        cf_payments_only = Decimal(str(sum(d.paid_amount for d in all_payments if 'Carry Forward' in (d.note or ''))))
         
         # Fee Payments should only include Applied Fees + Carry Forward (NOT fines)
         fee_payments_total = fee_payments_only + cf_payments_only
@@ -616,7 +693,7 @@ def student_fee_preview(request, student_id):
             'applied_fees': applied_fees,
             'cf_balance': cf_amount,
             'total_paid': fee_payments_total,  # Only fee + CF payments (NOT fines)
-            'total_discount': payment_history.get('total_discount', 0),
+            'total_discount': payment_history.get('total_discount', Decimal('0')),
             'balance': total_due,  # Use calculated due amount instead of total_balance
             'deposits': all_payments,
             'fine_paid_amount': fine_payments_only,  # Only fine payments
@@ -643,31 +720,91 @@ def student_fee_preview(request, student_id):
 
 @module_required('payments', 'view')
 def receipt_view(request, receipt_no):
-    """Receipt view - uses service layer"""
+    """Receipt view - uses AtomicFeeCalculator for consistent calculations"""
     try:
         receipt_data = FeeReportingService.get_receipt_data(receipt_no)
         school = SchoolProfile.objects.first()
+        student = receipt_data['student']
         
         payments = receipt_data['deposits']
-        fine_payments = payments.filter(note__icontains="Fine Payment")
-        cf_payments = payments.filter(note__icontains="Carry Forward Payment")
-        regular_payments = payments.exclude(note__icontains="Fine Payment").exclude(note__icontains="Carry Forward Payment")
+        
+        # Use AtomicFeeCalculator for consistent calculations
+        payable_fees = AtomicFeeCalculator.get_payable_fees(student, False)
+        balance_info = AtomicFeeCalculator.calculate_student_balance(student)
+        
+        # Map payments to calculator data for accurate calculations
+        enhanced_payments = []
+        for payment in payments:
+            # Find matching fee from calculator
+            matching_fee = None
+            for fee in payable_fees:
+                if ("Carry Forward" in payment.note and fee.get('id') == 'carry_forward') or \
+                   ("Fine Payment" in payment.note and fee.get('id', '').startswith('fine_')) or \
+                   (fee.get('display_name', '') in payment.note):
+                    matching_fee = fee
+                    break
+            
+            if matching_fee:
+                # Calculate previous payments based on actual payment history
+                if "Carry Forward" in payment.note:
+                    # For CF: Get all CF payments before this one
+                    cf_payments_before = FeeDeposit.objects.filter(
+                        student=student,
+                        note__icontains="Carry Forward",
+                        deposit_date__lt=payment.deposit_date
+                    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+                    payment.previous_total_paid = cf_payments_before
+                else:
+                    # For regular fees: Get all payments for this fee type before this one
+                    fee_type = payment.note.replace('Fee Payment: ', '') if 'Fee Payment:' in payment.note else ''
+                    regular_payments_before = FeeDeposit.objects.filter(
+                        student=student,
+                        note__icontains=fee_type,
+                        deposit_date__lt=payment.deposit_date
+                    ).exclude(
+                        Q(note__icontains="Fine Payment") | Q(note__icontains="Carry Forward")
+                    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+                    payment.previous_total_paid = regular_payments_before
+                payment.due_amount = matching_fee.get('due', 0)
+            else:
+                # Fallback for unmatched payments
+                payment.previous_total_paid = Decimal('0')
+                payment.due_amount = max(payment.amount - payment.paid_amount - payment.discount, Decimal('0'))
+            
+            enhanced_payments.append(payment)
+        
+        fine_payments = [p for p in enhanced_payments if "Fine Payment" in (p.note or '')]
+        cf_payments = [p for p in enhanced_payments if "Carry Forward Payment" in (p.note or '')]
+        regular_payments = [p for p in enhanced_payments if not ("Fine Payment" in (p.note or '') or "Carry Forward Payment" in (p.note or ''))]
+        
+        # Calculate totals from enhanced payments
+        total_previous_paid = sum(getattr(p, 'previous_total_paid', 0) for p in enhanced_payments)
+        total_due = sum(getattr(p, 'due_amount', 0) for p in enhanced_payments)
+        
+        # Calculate session-wise due amounts for receipt template - FIXED: Use 'balance' key
+        current_session_due = balance_info.get('current_session', {}).get('balance', 0)
+        previous_session_due = balance_info.get('carry_forward', {}).get('balance', 0)
         
         return render(request, 'student_fees/receipt.html', {
             'school': school,
-            'student': receipt_data['student'],
-            'class_name': receipt_data['student'].class_section.class_name if receipt_data['student'].class_section else '',
+            'student': student,
+            'class_name': student.class_section.class_name if student.class_section else '',
             'receipt_no': receipt_data['receipt_no'],
             'deposit_date': receipt_data['deposit_date'],
-            'payments': payments,
+            'payments': enhanced_payments,
             'regular_payments': regular_payments,
             'cf_payments': cf_payments,
             'fine_payments': fine_payments,
             'total_amount': receipt_data['total_amount'],
             'total_discount': receipt_data['total_discount'],
             'total_paid': receipt_data['total_paid'],
-            'show_discount': any(p.discount for p in payments),
-            'copy_labels': ['Original', 'Duplicate']
+            'total_previous_paid': total_previous_paid,
+            'total_due': total_due,
+            'current_session_due': current_session_due,
+            'previous_session_due': previous_session_due,
+            'show_discount': any(p.discount for p in enhanced_payments),
+            'copy_labels': ['Original', 'Duplicate'],
+            'amount_in_words': f"Rupees {number_to_words(receipt_data['total_paid']).title()} Only"
         })
         
     except ValueError as e:
@@ -692,21 +829,78 @@ def payment_confirmation(request, student_id):
     
     deposits = FeeDeposit.objects.filter(student=student, receipt_no=receipt_no) if receipt_no else FeeDeposit.objects.none()
     
-    fine_deposits = deposits.filter(note__icontains="Fine Payment")
-    cf_deposits = deposits.filter(note__icontains="Carry Forward Payment")
-    regular_deposits = deposits.exclude(note__icontains="Fine Payment").exclude(note__icontains="Carry Forward Payment")
+    # Use AtomicFeeCalculator to get current balance info (same as other views)
+    balance_info = AtomicFeeCalculator.calculate_student_balance(student)
+    payable_fees = AtomicFeeCalculator.get_payable_fees(student, False)
+    
+    # Map deposits to calculator data for accurate previous_paid and due_amount
+    enhanced_deposits = []
+    for deposit in deposits:
+        # Find matching fee from calculator
+        matching_fee = None
+        for fee in payable_fees:
+            if ("Carry Forward" in deposit.note and fee.get('id') == 'carry_forward') or \
+               ("Fine Payment" in deposit.note and fee.get('id', '').startswith('fine_')) or \
+               (fee.get('display_name', '') in deposit.note):
+                matching_fee = fee
+                break
+        
+        if matching_fee:
+            # Calculate previous payments based on actual payment history
+            if "Carry Forward" in deposit.note:
+                # For CF: Get all CF payments before this one
+                cf_payments_before = FeeDeposit.objects.filter(
+                    student=student,
+                    note__icontains="Carry Forward",
+                    deposit_date__lt=deposit.deposit_date
+                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+                deposit.previous_paid = cf_payments_before
+            else:
+                # For regular fees: Get all payments for this fee type before this one
+                fee_type = deposit.note.replace('Fee Payment: ', '') if 'Fee Payment:' in deposit.note else ''
+                regular_payments_before = FeeDeposit.objects.filter(
+                    student=student,
+                    note__icontains=fee_type,
+                    deposit_date__lt=deposit.deposit_date
+                ).exclude(
+                    Q(note__icontains="Fine Payment") | Q(note__icontains="Carry Forward")
+                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+                deposit.previous_paid = regular_payments_before
+            deposit.due_amount = matching_fee.get('due', 0)
+        else:
+            # Fallback for unmatched deposits
+            deposit.previous_paid = Decimal('0')
+            deposit.due_amount = max(deposit.amount - deposit.paid_amount - deposit.discount, Decimal('0'))
+        
+        enhanced_deposits.append(deposit)
+    
+    fine_deposits = [d for d in enhanced_deposits if "Fine Payment" in (d.note or '')]
+    cf_deposits = [d for d in enhanced_deposits if "Carry Forward Payment" in (d.note or '')]
+    regular_deposits = [d for d in enhanced_deposits if not ("Fine Payment" in (d.note or '') or "Carry Forward Payment" in (d.note or ''))]
+    
+    # Calculate totals from enhanced deposits
+    total_previous_paid = sum(getattr(d, 'previous_paid', 0) for d in enhanced_deposits)
+    total_due = sum(getattr(d, 'due_amount', 0) for d in enhanced_deposits)
+    
+    # Calculate session-wise due amounts for template consistency - FIXED: Use 'balance' key
+    current_session_due = balance_info.get('current_session', {}).get('balance', 0)
+    previous_session_due = balance_info.get('carry_forward', {}).get('balance', 0)
     
     return render(request, 'student_fees/payment_confirmation.html', {
         'student': student,
-        'deposits': deposits,
+        'deposits': enhanced_deposits,
         'regular_deposits': regular_deposits,
         'cf_deposits': cf_deposits,
         'fine_deposits': fine_deposits,
         'receipt_no': receipt_no,
         'deposit_date': deposits.first().deposit_date if deposits.exists() else django_timezone.now(),
-        'total_amount': sum(d.amount for d in deposits),
-        'total_discount': sum(d.discount for d in deposits),
-        'total_paid': sum(d.paid_amount for d in deposits)
+        'total_amount': sum(d.amount for d in enhanced_deposits),
+        'total_discount': sum(d.discount for d in enhanced_deposits),
+        'total_paid': sum(d.paid_amount for d in enhanced_deposits),
+        'total_previous_paid': total_previous_paid,
+        'total_due': total_due,
+        'current_session_due': current_session_due,
+        'previous_session_due': previous_session_due
     })
 
 @require_POST

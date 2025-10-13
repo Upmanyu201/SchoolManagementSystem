@@ -1,18 +1,14 @@
 # core/fee_calculation_engine.py
 
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from django.db.models import Sum, Q, F
-from django.db import transaction
+from typing import List, Dict
+from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from django.db.models import Sum, Q
 from django.core.cache import cache
+from core.fee_management.calculators import AtomicFeeCalculator
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.utils.html import escape
-from core.security_utils import sanitize_input, validate_file_upload
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +43,10 @@ class PaymentBreakdown:
     transaction_details: Dict = field(default_factory=dict)
 
 class FeeCalculationEngine:
-    """Enterprise-grade fee calculation algorithm with advanced optimization"""
+    """Fee calculation engine using AtomicFeeCalculator"""
     
     def __init__(self):
-        self.cache_timeout = 300  # 5 minutes
+        self.calculator = AtomicFeeCalculator
     
     def get_calculation_settings(self):
         """Get current calculation settings from database"""
@@ -71,50 +67,30 @@ class FeeCalculationEngine:
                 auto_apply_bulk_discounts=True
             )
         
-    def get_student_fee_summary(self, student) -> FeeBreakdown:
-        """
-        Calculate complete fee summary for student dashboard
-        Integrates data from all fee-related templates
-        """
-        cache_key = f"fee_summary_{student.admission_number}"
-        cached_data = cache.get(cache_key)
-        
-        if cached_data:
-            return cached_data
-            
-        breakdown = FeeBreakdown()
-        
+    def get_student_fee_summary(self, student):
+        """Get fee summary using AtomicFeeCalculator"""
         try:
-            # a. Carry Forward Amount (from fees_carry_forward.html)
-            breakdown.carry_forward = self._get_carry_forward_amount(student)
+            balance_data = self.calculator.calculate_student_balance(student)
             
-            # b. Current Session Due (from fees_rows.html)
-            breakdown.current_session_fees = self._get_current_session_dues(student)
-            
-            # c. Transport fees if applicable
-            breakdown.transport_fees = self._get_transport_fees(student)
-            
-            # d. Fine amounts (from fine_history.html)
-            breakdown.fine_amount = self._get_unpaid_fines_total(student)
-            
-            # Payment calculations (from student_fee_preview.html)
-            payment_data = self._get_payment_summary(student)
-            breakdown.total_paid = payment_data['total_paid']
-            breakdown.total_discount = payment_data['total_discount']
-            breakdown.fine_paid = payment_data['fine_paid']
-            
-            # Calculate final totals
-            breakdown.calculate_totals()
-            
-            # Cache the result
-            cache.set(cache_key, breakdown, self.cache_timeout)
-            
-            logger.info(f"Fee summary calculated for {student.admission_number}: Outstanding Rs{breakdown.outstanding_balance}")
+            return {
+                'carry_forward': balance_data['carry_forward']['balance'],
+                'current_session_fees': balance_data['current_session']['balance'],
+                'fine_amount': balance_data['fines']['unpaid'],
+                'total_paid': balance_data['current_session']['paid'],
+                'total_discount': balance_data['current_session']['discount'],
+                'outstanding_balance': balance_data['total_balance']
+            }
             
         except Exception as e:
-            logger.error(f"Error calculating fee summary for {sanitize_input(student.admission_number)}: {sanitize_input(str(e))}")
-            
-        return breakdown
+            logger.error(f"Error calculating fee summary for {student.admission_number}: {e}")
+            return {
+                'carry_forward': Decimal('0.00'),
+                'current_session_fees': Decimal('0.00'),
+                'fine_amount': Decimal('0.00'),
+                'total_paid': Decimal('0.00'),
+                'total_discount': Decimal('0.00'),
+                'outstanding_balance': Decimal('0.00')
+            }
     
     def _get_carry_forward_amount(self, student) -> Decimal:
         """Get carry forward amount from previous session"""
@@ -251,131 +227,48 @@ class FeeCalculationEngine:
                 'fine_paid': Decimal('0')
             }
     
-    @transaction.atomic
-    def process_fee_payment(self, student, payment_data: PaymentBreakdown) -> Dict:
-        """
-        Process fee payment with comprehensive breakdown update
-        Updates payment history and recalculates all amounts
-        """
+    def process_fee_payment(self, student, payment_data) -> dict:
+        """Process payment using AtomicFeeCalculator"""
         try:
-            from student_fees.models import FeeDeposit
-            from fees.models import FeesType
-            from fines.models import FineStudent
+            result = self.calculator.process_payment(student, payment_data)
             
-            receipt_no = self._generate_receipt_number()
-            payment_records = []
-            
-            # Process each selected fee
-            for fee_item in payment_data.selected_fees:
-                fee_type = fee_item.get('type')
-                amount = Decimal(str(fee_item.get('amount', 0)))
-                discount = Decimal(str(fee_item.get('discount', 0)))
+            if result['success']:
+                return {
+                    'success': True,
+                    'receipt_no': result['receipt_no'],
+                    'total_paid': result['total_paid'],
+                    'updated_summary': self.get_student_fee_summary(student)
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Payment processing failed')
+                }
                 
-                if fee_type == 'carry_forward':
-                    # Handle carry forward payment
-                    deposit = FeeDeposit.objects.create(
-                        student=student,
-                        amount=amount,
-                        discount=discount,
-                        paid_amount=amount - discount,
-                        receipt_no=receipt_no,
-                        payment_mode=payment_data.payment_method,
-                        transaction_no=payment_data.transaction_details.get('transaction_no', ''),
-                        payment_source=payment_data.transaction_details.get('payment_source', ''),
-                        note="Carry Forward Payment"
-                    )
-                    payment_records.append(deposit)
-                    
-                elif fee_type.startswith('fine_'):
-                    # Handle fine payment
-                    fine_id = fee_type.replace('fine_', '')
-                    fine_student = FineStudent.objects.get(
-                        fine_id=fine_id,
-                        student=student
-                    )
-                    
-                    deposit = FeeDeposit.objects.create(
-                        student=student,
-                        amount=amount,
-                        discount=discount,
-                        paid_amount=amount - discount,
-                        receipt_no=receipt_no,
-                        payment_mode=payment_data.payment_method,
-                        transaction_no=payment_data.transaction_details.get('transaction_no', ''),
-                        payment_source=payment_data.transaction_details.get('payment_source', ''),
-                        note=f"Fine Payment - {escape(fine_student.fine.fine_type.name)}"
-                    )
-                    
-                    # Mark fine as paid
-                    fine_student.is_paid = True
-                    fine_student.payment_date = timezone.now().date()
-                    fine_student.save()
-                    
-                    payment_records.append(deposit)
-                    
-                else:
-                    # Handle regular fee payment
-                    try:
-                        fees_type = FeesType.objects.get(id=fee_type)
-                        deposit = FeeDeposit.objects.create(
-                            student=student,
-                            fees_type=fees_type,
-                            fees_group=fees_type.fee_group,
-                            amount=amount,
-                            discount=discount,
-                            paid_amount=amount - discount,
-                            receipt_no=receipt_no,
-                            payment_mode=payment_data.payment_method,
-                            transaction_no=payment_data.transaction_details.get('transaction_no', ''),
-                            payment_source=payment_data.transaction_details.get('payment_source', '')
-                        )
-                        payment_records.append(deposit)
-                    except FeesType.DoesNotExist:
-                        logger.error(f"FeesType {sanitize_input(str(fee_type))} not found for student {sanitize_input(student.admission_number)}")
-            
-            # Update student due amount
-            student.update_due_amount()
-            
-            # Clear cache
-            self._clear_student_cache(student)
-            
-            # Generate updated fee summary
-            updated_summary = self.get_student_fee_summary(student)
-            
-            return {
-                'success': True,
-                'receipt_no': receipt_no,
-                'payment_records': payment_records,
-                'updated_summary': updated_summary,
-                'total_paid': payment_data.payable_amount
-            }
-            
         except Exception as e:
-            logger.error(f"Error processing payment for {sanitize_input(student.admission_number)}: {sanitize_input(str(e))}")
+            logger.error(f"Error processing payment for {student.admission_number}: {e}")
             return {
                 'success': False,
                 'error': str(e)
             }
     
-    def get_dashboard_summary(self, student) -> Dict:
-        """Get complete dashboard summary with all fee information"""
+    def get_dashboard_summary(self, student):
+        """Get dashboard summary using AtomicFeeCalculator"""
         fee_breakdown = self.get_student_fee_summary(student)
         
         return {
             'financial_overview': {
-                'carry_forward': fee_breakdown.carry_forward,
-                'current_session_dues': fee_breakdown.current_session_fees,
-                'transport_fees': fee_breakdown.transport_fees,
-                'unpaid_fines': fee_breakdown.fine_amount,
-                'total_outstanding': fee_breakdown.outstanding_balance,
-                'total_paid': fee_breakdown.total_paid,
-                'total_discount': fee_breakdown.total_discount,
-                'fine_paid': fee_breakdown.fine_paid
+                'carry_forward': fee_breakdown['carry_forward'],
+                'current_session_dues': fee_breakdown['current_session_fees'],
+                'unpaid_fines': fee_breakdown['fine_amount'],
+                'total_outstanding': fee_breakdown['outstanding_balance'],
+                'total_paid': fee_breakdown['total_paid'],
+                'total_discount': fee_breakdown['total_discount']
             },
             'status': {
-                'has_dues': fee_breakdown.outstanding_balance > 0,
-                'has_fines': fee_breakdown.fine_amount > 0,
-                'payment_required': fee_breakdown.outstanding_balance > 0 or fee_breakdown.fine_amount > 0
+                'has_dues': fee_breakdown['outstanding_balance'] > 0,
+                'has_fines': fee_breakdown['fine_amount'] > 0,
+                'payment_required': fee_breakdown['outstanding_balance'] > 0
             }
         }
     
@@ -425,64 +318,20 @@ class FeeCalculationEngine:
             logger.error(f"Error calculating bulk discount: {sanitize_input(str(e))}")
             return Decimal('0')
     
-    def get_optimized_payment_plan(self, student) -> Dict:
-        """Generate optimized payment plan for student"""
+    def get_optimized_payment_plan(self, student):
+        """Get payable fees using AtomicFeeCalculator"""
         try:
-            fee_summary = self.get_student_fee_summary(student)
-            
-            # Priority order: Fines > Carry Forward > Current Session > Transport
-            payment_plan = []
-            
-            if fee_summary.fine_amount > 0:
-                payment_plan.append({
-                    'priority': 1,
-                    'type': 'fines',
-                    'amount': fee_summary.fine_amount,
-                    'description': 'Unpaid Fines (Highest Priority)',
-                    'due_immediately': True
-                })
-            
-            if fee_summary.carry_forward > 0:
-                payment_plan.append({
-                    'priority': 2,
-                    'type': 'carry_forward',
-                    'amount': fee_summary.carry_forward,
-                    'description': 'Previous Session Dues',
-                    'due_immediately': True
-                })
-            
-            if fee_summary.current_session_fees > 0:
-                payment_plan.append({
-                    'priority': 3,
-                    'type': 'current_session',
-                    'amount': fee_summary.current_session_fees,
-                    'description': 'Current Session Fees',
-                    'due_immediately': False
-                })
-            
-            if fee_summary.transport_fees > 0:
-                payment_plan.append({
-                    'priority': 4,
-                    'type': 'transport',
-                    'amount': fee_summary.transport_fees,
-                    'description': 'Transport Fees',
-                    'due_immediately': False
-                })
-            
-            # Calculate potential discounts
-            total_amount = fee_summary.outstanding_balance + fee_summary.fine_amount
-            bulk_discount = self.calculate_bulk_payment_discount(total_amount)
+            payable_fees = self.calculator.get_payable_fees(student)
             
             return {
-                'payment_plan': payment_plan,
-                'total_amount': total_amount,
-                'potential_discount': bulk_discount,
-                'recommended_action': self._get_payment_recommendation(fee_summary)
+                'payment_plan': payable_fees,
+                'total_amount': sum(fee['payable'] for fee in payable_fees),
+                'recommended_action': 'Pay highest priority items first'
             }
             
         except Exception as e:
-            logger.error(f"Error generating payment plan for {sanitize_input(student.admission_number)}: {sanitize_input(str(e))}")
-            return {}
+            logger.error(f"Error generating payment plan for {student.admission_number}: {e}")
+            return {'payment_plan': [], 'total_amount': Decimal('0.00')}
     
     def _get_payment_recommendation(self, fee_summary: FeeBreakdown) -> str:
         """Get payment recommendation based on fee analysis and settings"""
@@ -556,10 +405,3 @@ class FeeCalculationEngine:
 
 # Singleton instance
 fee_engine = FeeCalculationEngine()
-
-# Import centralized fee service
-try:
-    from core.fee_management.services import fee_service
-except ImportError:
-    fee_service = None
-    logger.warning("Fee management service not available")

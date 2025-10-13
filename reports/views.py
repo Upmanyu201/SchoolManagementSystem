@@ -449,9 +449,12 @@ def fees_report(request):
         cf_paid = cf_payments.aggregate(Sum('paid_amount'))['paid_amount__sum'] or Decimal('0')
         cf_discount = cf_payments.aggregate(Sum('discount'))['discount__sum'] or Decimal('0')
         
-        # Current session payments only
-        current_paid = total_fee_paid - cf_paid
-        current_discount = total_fee_discount - cf_discount
+        # Current session payments only - FIXED: Separate current from CF
+        current_session_payments = fee_payments.exclude(
+            Q(note__icontains="Carry Forward") | Q(payment_source="carry_forward")
+        )
+        current_paid = current_session_payments.aggregate(Sum('paid_amount'))['paid_amount__sum'] or Decimal('0')
+        current_discount = current_session_payments.aggregate(Sum('discount'))['discount__sum'] or Decimal('0')
         
         # Remaining CF due
         cf_due = max(cf_due_original - cf_paid - cf_discount, Decimal('0'))
@@ -492,7 +495,7 @@ def fees_report(request):
             'admission_number': student.admission_number,
             'class_name': class_section,
             'current_fees': total_fees,  # Show total fees (current + CF)
-            'current_paid': total_fee_paid,  # Show total paid (fees + CF)
+            'current_paid': current_paid,  # Show ONLY current session payments (NOT CF)
             'current_discount': total_fee_discount,
             'cf_due': cf_due,
             'cf_paid': cf_paid,
@@ -526,7 +529,7 @@ def fees_report(request):
             
             # Update totals
             totals['current_fees'] += total_fees  # Use total fees (current + CF)
-            totals['current_paid'] += total_fee_paid  # Use total paid (fees + CF)
+            totals['current_paid'] += current_paid  # Use ONLY current session payments
             totals['current_discount'] += total_fee_discount
             totals['cf_due'] += cf_due
             totals['cf_paid'] += cf_paid
